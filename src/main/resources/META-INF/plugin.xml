@@ -1,0 +1,38 @@
+<idea-plugin>
+    <id>ru.curs.celesta.intellij</id>
+    <name>CelestaSQL</name>
+    <vendor email="support@corchestra.ru" url="https://corchestra.ru/">CourseOrchestra</vendor>
+
+    <description><![CDATA[
+        Celesta is a tool for Java backend developers who want easier ways to deliver RDBMS-backed software.
+        This is a Java library with a Maven plugin that provides database migrations, ORM and testing.
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.java</depends>
+    <depends>com.intellij.modules.sql</depends>
+
+    <depends>org.jetbrains.idea.maven</depends>
+    <depends>org.jetbrains.idea.maven.model</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="ru.curs.celesta.intellij.maven.CelestaMavenManager$StartupActivity"/>
+
+        <projectService serviceImplementation="ru.curs.celesta.intellij.maven.CelestaMavenManager"/>
+
+        <projectService serviceImplementation="ru.curs.celesta.intellij.scores.CelestaScoreSearch"/>
+
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedTableLineMarkerProvider" language="JAVA"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedMaterializedViewLineMarkers" language="JAVA"/>
+
+        <codeInsight.lineMarkerProvider
+            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaTableDefinitionLineMarkerProvider" language="SQL"/>
+    </extensions>
+
+    <projectListeners>
+        <listener class="ru.curs.celesta.intellij.autogenerate.AutoGenerateSourcesListener"
+                  topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+    </projectListeners>
+</idea-plugin>
