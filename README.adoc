@@ -1,0 +1,3 @@
+= Celesta IntelliJ Plugin
+
+image::https://ci.corchestra.ru/buildStatus/icon?job=celesta-intellij-plugin/dev[link=https://ci.corchestra.ru/job/celesta-intellij-plugin/job/dev/]
