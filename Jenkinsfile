@@ -1,4 +1,3 @@
-@Library('ratcheting') _
 node {
     def server = Artifactory.server 'ART'
     def rtGradle = Artifactory.newGradleBuild()
@@ -9,9 +8,9 @@ node {
     }
 
     stage ('Artifactory configuration') {
-        rtMaven.tool = 'GRADLE_TOOL' 
-        rtGradle.deployer releaseRepo: 'libs-release-local', snapshotRepo: 'libs-snapshot-local', server: server
-        rtGradle.resolver releaseRepo: 'libs-release', snapshotRepo: 'libs-snapshot', server: server
+        rtGradle.tool = 'GRADLE_TOOL' 
+        rtGradle.deployer repo: 'libs-release-local', server: server
+        rtGradle.resolver repo: 'libs-release', server: server
         buildInfo.env.capture = true
     }
 
@@ -20,11 +19,11 @@ node {
             rtGradle.run buildFile: 'build.gradle', tasks: 'build', buildInfo: buildInfo
         }
     } finally {
-        /*
-        junit 'target/surefire-reports/**/*.xml'
-        checkstyle pattern: '**/target/checkstyle-result.xml'
-        findbugs pattern: '**/target/spotbugsXml.xml'
-        */
+        
+        // junit 'target/surefire-reports/**/*.xml'
+        // checkstyle pattern: '**/target/checkstyle-result.xml'
+        // findbugs pattern: '**/target/spotbugsXml.xml'
+        
     }
 
 
