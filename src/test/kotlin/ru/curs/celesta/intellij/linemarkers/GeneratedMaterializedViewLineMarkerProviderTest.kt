@@ -23,7 +23,7 @@ internal class GeneratedMaterializedViewLineMarkerProviderTest : AbstractLineMar
 
         myFixture.configureByFile("OrderedQtyCursor.java")
         val gutters = myFixture.findGuttersAtCaret()
-        assert(gutters.size == 1)
+        assertEquals(1, gutters.size)
 
         val gutter = gutters[0]
         
@@ -37,7 +37,7 @@ internal class GeneratedMaterializedViewLineMarkerProviderTest : AbstractLineMar
     fun testNoTarget() {
         myFixture.configureByFile("SomeViewCursor.java")
         val gutters = myFixture.findGuttersAtCaret()
-        assert(gutters.size == 1)
+        assertEquals(1, gutters.size)
 
         gutters[0].assertGutterTarget { _, _ -> /*Nothing to do*/ }
 

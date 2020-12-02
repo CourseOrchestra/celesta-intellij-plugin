@@ -2,6 +2,7 @@ package ru.curs.celesta.intellij.linemarkers
 
 import com.intellij.codeInsight.daemon.LineMarkerProvider
 import com.intellij.sql.psi.SqlLanguage
+import junit.framework.TestCase
 import ru.curs.celesta.intellij.CelestaBundle
 import ru.curs.celesta.intellij.assertGutterTarget
 import ru.curs.celesta.intellij.getElementUnderCaret
@@ -19,7 +20,7 @@ internal class CelestaMaterializedViewDefinitionLineMarkerProviderTest : Abstrac
 
         myFixture.configureByFile("score.sql")
         val gutters = myFixture.findGuttersAtCaret()
-        assert(gutters.size == 1)
+        assertEquals(1, gutters.size)
 
         val gutter = gutters[0]
         assertGutterTarget(gutter, cursorClass)
@@ -30,7 +31,7 @@ internal class CelestaMaterializedViewDefinitionLineMarkerProviderTest : Abstrac
     fun testNoTarget() {
         myFixture.configureByFile("score_no_target.sql")
         val gutters = myFixture.findGuttersAtCaret()
-        assert(gutters.size == 1)
+        assertEquals(1, gutters.size)
 
         gutters[0].assertGutterTarget { _, _ -> /*Nothing to do*/ }
 

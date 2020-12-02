@@ -14,16 +14,17 @@ node {
         buildInfo.env.capture = true
     }
 
-    try{
-        stage ('Exec Gradle') {
-            rtGradle.run buildFile: 'build.gradle', tasks: 'build', buildInfo: buildInfo
+
+    stage ('Test') {
+        rtGradle.run buildFile: 'build.gradle', tasks: 'build', buildInfo: buildInfo
+    }
+
+    stage ('Build Plugin') {
+        rtGradle.run buildFile: 'build.gradle', tasks: 'buildPlugin', buildInfo: buildInfo
+
+        steps {
+            archiveArtifacts artifacts: 'build/distributions/*.zip', fingerprint: true
         }
-    } finally {
-        
-        // junit 'target/surefire-reports/**/*.xml'
-        // checkstyle pattern: '**/target/checkstyle-result.xml'
-        // findbugs pattern: '**/target/spotbugsXml.xml'
-        
     }
 
 

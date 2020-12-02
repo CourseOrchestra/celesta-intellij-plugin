@@ -19,7 +19,7 @@ internal class CelestaTableDefinitionLineMarkerProviderTest : AbstractLineMarker
 
         myFixture.configureByFile("score.sql")
         val gutters = myFixture.findGuttersAtCaret()
-        assert(gutters.size == 1)
+        assertEquals(1, gutters.size)
 
         val gutter = gutters[0]
         assertGutterTarget(gutter, cursorClass)
@@ -30,7 +30,7 @@ internal class CelestaTableDefinitionLineMarkerProviderTest : AbstractLineMarker
     fun testNoTarget() {
         myFixture.configureByFile("score_no_target.sql")
         val gutters = myFixture.findGuttersAtCaret()
-        assert(gutters.size == 1)
+        assertEquals(1, gutters.size)
 
         gutters[0].assertGutterTarget { _, _ -> /*Nothing to do*/ }
 
