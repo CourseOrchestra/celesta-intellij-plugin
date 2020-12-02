@@ -22,13 +22,18 @@
 
         <projectService serviceImplementation="ru.curs.celesta.intellij.scores.CelestaScoreSearch"/>
 
+        <projectService serviceImplementation="ru.curs.celesta.intellij.generated.GeneratedClassesSearch"/>
+
         <codeInsight.lineMarkerProvider
                 implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedTableLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedMaterializedViewLineMarkers" language="JAVA"/>
+                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedMaterializedViewLineMarkerProvider" language="JAVA"/>
 
         <codeInsight.lineMarkerProvider
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaTableDefinitionLineMarkerProvider" language="SQL"/>
+
+        <codeInsight.lineMarkerProvider
+            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaMaterializedViewDefinitionLineMarkerProvider" language="SQL"/>
     </extensions>
 
     <projectListeners>

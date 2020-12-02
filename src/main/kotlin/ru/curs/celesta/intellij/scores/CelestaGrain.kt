@@ -11,14 +11,13 @@ import com.intellij.sql.psi.SqlElementTypes
 import com.intellij.sql.psi.SqlFile
 import com.intellij.sql.psi.SqlTokens
 import com.intellij.sql.psi.impl.SqlTokenElement
-import ru.curs.celesta.intellij.CelestaBundle
 import ru.curs.celesta.intellij.cachedValue
 import ru.curs.celesta.intellij.maven.CelestaMavenManager
 
 class CelestaGrain private constructor(sqlFile: SqlFile) {
     private val pointer: SmartPsiElementPointer<SqlFile> = SmartPointerManager.createPointer(sqlFile)
 
-    private val sqlFile: SqlFile
+    val sqlFile: SqlFile
         get() = pointer.element
             ?: throw IllegalStateException()
 

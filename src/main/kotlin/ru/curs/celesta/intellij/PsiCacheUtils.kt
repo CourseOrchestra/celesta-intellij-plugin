@@ -33,7 +33,7 @@ private fun <T> getKeyForClass(
     return getKeyForName(name, keyForProvider)
 }
 
-fun <T> PsiElement.cachedValue(provider: PsiElement.() -> T): T = CachedValuesManager.getManager(project)
+fun <T, P:PsiElement> P.cachedValue(provider: P.() -> T): T = CachedValuesManager.getManager(project)
     .getCachedValue(
         this,
         getKeyForClass(

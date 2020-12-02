@@ -1,7 +1,9 @@
 package ru.curs.celesta.intellij.autogenerate
 
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.notification.*
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationAction
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
@@ -14,11 +16,12 @@ import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
-import org.jetbrains.idea.maven.execution.MavenExecutionOptions
 import org.jetbrains.idea.maven.execution.MavenRunConfigurationType
 import org.jetbrains.idea.maven.execution.MavenRunnerParameters
 import org.jetbrains.idea.maven.execution.SoutMavenConsole
-import org.jetbrains.idea.maven.project.*
+import org.jetbrains.idea.maven.project.MavenProject
+import org.jetbrains.idea.maven.project.MavenProjectReader
+import org.jetbrains.idea.maven.project.MavenProjectsManager
 import ru.curs.celesta.intellij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.intellij.maven.CelestaMavenManager
 import java.io.File
@@ -93,24 +96,10 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
             projectsManager.importingSettings,
             mavenProject.file,
             mavenProject.activatedProfilesIds,
-            object : MavenConsole(MavenExecutionOptions.LoggingLevel.DEBUG, true) {
-                override fun canPause(): Boolean = false
-
-                override fun isOutputPaused(): Boolean = false
-                override fun setOutputPaused(outputPaused: Boolean) {
-
-                }
-
-                override fun doPrint(text: String?, type: OutputType?) {
-                    println("sadf")
-                }
-
-            }
-//                    SoutMavenConsole (
-//                    MavenExecutionOptions.LoggingLevel.DEBUG,
-//                mavenGeneralSettings.outputLevel,
-//            true,//mavenGeneralSettings.isPrintErrorStackTraces
-//        )
+            SoutMavenConsole(
+                mavenGeneralSettings.outputLevel,
+                mavenGeneralSettings.isPrintErrorStackTraces
+            )
         ) ?: return
 
         if (result.readingProblems.isEmpty()) {
