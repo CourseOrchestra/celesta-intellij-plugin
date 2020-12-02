@@ -22,9 +22,7 @@ node {
     stage ('Build Plugin') {
         rtGradle.run buildFile: 'build.gradle', tasks: 'buildPlugin', buildInfo: buildInfo
 
-        steps {
-            archiveArtifacts artifacts: 'build/distributions/*.zip', fingerprint: true
-        }
+        archiveArtifacts artifacts: 'build/distributions/*.zip', fingerprint: true
     }
 
 
