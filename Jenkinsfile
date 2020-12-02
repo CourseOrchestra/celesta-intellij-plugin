@@ -16,7 +16,7 @@ node {
 
 
     stage ('Test') {
-        rtGradle.run buildFile: 'build.gradle', tasks: 'build', buildInfo: buildInfo
+        rtGradle.run buildFile: 'build.gradle', tasks: 'test', buildInfo: buildInfo
     }
 
     stage ('Build Plugin') {
