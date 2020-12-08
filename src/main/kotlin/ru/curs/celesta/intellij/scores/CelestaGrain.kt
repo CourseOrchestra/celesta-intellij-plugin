@@ -11,8 +11,10 @@ import com.intellij.sql.psi.SqlElementTypes
 import com.intellij.sql.psi.SqlFile
 import com.intellij.sql.psi.SqlTokens
 import com.intellij.sql.psi.impl.SqlTokenElement
+import com.intellij.util.castSafelyTo
 import ru.curs.celesta.intellij.cachedValue
 import ru.curs.celesta.intellij.maven.CelestaMavenManager
+import ru.curs.celesta.intellij.prev
 
 class CelestaGrain private constructor(sqlFile: SqlFile) {
     private val pointer: SmartPsiElementPointer<SqlFile> = SmartPointerManager.createPointer(sqlFile)
@@ -21,7 +23,7 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
         get() = pointer.element
             ?: throw IllegalStateException()
 
-    val packageName: String?
+    val packageName: String
         get() = getPackageName(sqlFile)
 
     val grainName: String?
@@ -33,13 +35,28 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
     val materializedViews: Map<String, SqlTokenElement>
         get() = getViews(sqlFile)
 
+    val sequences: Map<String, SqlCreateStatement>
+        get() = getSequences(sqlFile)
+
+    val isTestGrain: Boolean
+        get() = isTestGrain(sqlFile)
+
     companion object {
         operator fun invoke(sqlFile: SqlFile): CelestaGrain = CachedValuesManager.getCachedValue(sqlFile) {
             return@getCachedValue CachedValueProvider.Result.create(CelestaGrain(sqlFile), sqlFile)
         }
 
         private fun getScoreName(sqlFile: SqlFile): String? = sqlFile.cachedValue {
-            val firstIdentifier = children.firstOrNull { it.elementType == SqlTokens.SQL_IDENT }
+            val schemaName = children.firstOrNull {
+                it.elementType == SqlElementTypes.SQL_CREATE_SCHEMA_STATEMENT
+            }.castSafelyTo<SqlCreateStatement>()
+                ?.name
+
+            if (schemaName != null)
+                return@cachedValue schemaName
+
+            // create grain statement
+            val firstIdentifier = children.firstOrNull { it.elementType == SqlTokens.SQL_IDENT }?.takeIf { it.prev()?.text == "GRAIN" }
                 ?: return@cachedValue null
 
             return@cachedValue firstIdentifier.text
@@ -51,15 +68,40 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
                 .associateBy { it.name }
         }
 
-        private fun getPackageName(sqlFile: SqlFile): String? = sqlFile.cachedValue {
+        private fun getSequences(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
+            children.filterIsInstance<SqlCreateStatement>()
+                .filter { it.elementType == SqlElementTypes.SQL_CREATE_SEQUENCE_STATEMENT }
+                .associateBy { it.name }
+        }
+
+        private fun isTestGrain(sqlFile: SqlFile): Boolean = sqlFile.cachedValue {
+            resolvePackageName(this, true) != null
+        }
+
+        private fun getPackageName(sqlFile: SqlFile): String = sqlFile.cachedValue {
+            return@cachedValue resolvePackageName(this, false)
+                ?: resolvePackageName(this, true)
+                ?: ""
+        }
+
+        private fun resolvePackageName(sqlFile: SqlFile, isTestGrain: Boolean): String? {
+            val project = sqlFile.project
+
             val celestaMavenManager = CelestaMavenManager.getInstance(project)
 
-            val mavenProject = celestaMavenManager.guessProject(containingFile.virtualFile.parent)
-                ?: return@cachedValue null
+            val mavenProject = celestaMavenManager.guessProject(sqlFile.virtualFile.parent)
+                ?: return null
 
-            celestaMavenManager.getCelestaSourcesRoot(mavenProject)?.let {
-                VfsUtil.getRelativePath(containingFile.virtualFile, it)
-            }?.replace('/', '.')
+            val sourcesRoots = if (isTestGrain)
+                celestaMavenManager.getCelestaTestSourcesRoots(mavenProject)
+            else
+                celestaMavenManager.getCelestaSourcesRoots(mavenProject)
+
+            return sourcesRoots
+                .asSequence()
+                .mapNotNull {
+                    VfsUtil.getRelativePath(sqlFile.virtualFile.parent, it)?.replace('/', '.')
+                }.firstOrNull()
         }
 
         private fun getViews(sqlFile: SqlFile): Map<String, SqlTokenElement> = sqlFile.cachedValue {

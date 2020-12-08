@@ -18,6 +18,7 @@ import org.jetbrains.idea.maven.project.MavenProjectChanges
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.idea.maven.project.MavenProjectsTree
 import org.jetbrains.idea.maven.server.NativeMavenProjectHolder
+import ru.curs.celesta.intellij.CelestaConstants
 import java.io.File
 
 class CelestaMavenManager(private val project: Project) {
@@ -47,17 +48,39 @@ class CelestaMavenManager(private val project: Project) {
 
     }
 
-    fun getCelestaSourcesRoot(mavenProject: MavenProject): VirtualFile? {
-        val module = getModule(mavenProject) ?: return null
+    fun getCelestaSourcesRoots(mavenProject: MavenProject): List<VirtualFile> {
+        return getSourcesRoot(mavenProject, "scores", CelestaConstants.DEFAULT_SOURCE_PATH)
+    }
 
-//        todo parse properties
+    fun getCelestaTestSourcesRoots(mavenProject: MavenProject): List<VirtualFile> {
+        return getSourcesRoot(mavenProject, "testScores", CelestaConstants.DEFAULT_TEST_SOURCE_PATH)
+    }
 
-        return ModuleRootManager.getInstance(module)
-            .contentRoots
-            .mapNotNull {
-                VfsUtil.findRelativeFile(it, "src", "main", "celestasql")
+    private fun getSourcesRoot(
+        mavenProject: MavenProject,
+        configElementName: String,
+        defaultPath: String
+    ): List<VirtualFile> {
+        val module = getModule(mavenProject) ?: return emptyList()
+
+        val configurationElement =
+            mavenProject.plugins.firstOrNull { it.artifactId == "celesta-maven-plugin" && it.groupId == "ru.curs" }?.configurationElement
+
+        val relativeScorePaths = (configurationElement?.let { configuration ->
+            configuration.getChild(configElementName)
+                ?.getChildren("score")
+                ?.mapNotNull {
+                    it.getChild("path")?.text
+                }?.map {
+                    it.removePrefix(mavenProject.path.removeSuffix("pom.xml"))
+                }
+        } ?: listOf()) + listOf(defaultPath)
+
+        return ModuleRootManager.getInstance(module).contentRoots.flatMap { root ->
+            relativeScorePaths.mapNotNull {
+                VfsUtil.findRelativeFile(root, *it.split("/").toTypedArray())
             }
-            .firstOrNull()
+        }
     }
 
     fun getModule(mavenProject: MavenProject): Module? {
@@ -68,15 +91,26 @@ class CelestaMavenManager(private val project: Project) {
     }
 
     fun guessProject(sqlFile: VirtualFile): MavenProject? = runReadAction {
-        for ((module, mavenProject) in module2mavenProject) {
+        val contentRoot2Module: MutableMap<VirtualFile, Module> = mutableMapOf()
+
+        for ((module, _) in module2mavenProject) {
             val contentRoots = ModuleRootManager.getInstance(module).contentRoots
             for (contentRoot in contentRoots) {
                 if (VfsUtil.isAncestor(contentRoot, sqlFile, true)) {
-                    return@runReadAction mavenProject
+                    contentRoot2Module[contentRoot] = module
                 }
             }
         }
-        return@runReadAction null
+
+        val nearestModule = contentRoot2Module.entries.sortedWith(Comparator.comparing({ it.key }) { rootA, rootB ->
+            when {
+                VfsUtil.isAncestor(rootA, rootB, true) -> 1
+                VfsUtil.isAncestor(rootB, rootA, true) -> -1
+                else -> 0
+            }
+        }).firstOrNull()?.value ?: return@runReadAction null
+
+        return@runReadAction module2mavenProject[nearestModule]
     }
 
     private fun reloadGeneratedSources(projectWithChanges: Pair<MavenProject, MavenProjectChanges>) {

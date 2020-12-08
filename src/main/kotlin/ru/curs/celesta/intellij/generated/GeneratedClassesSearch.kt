@@ -4,32 +4,37 @@ import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.psi.JavaPsiFacade
+import com.intellij.psi.PsiClassOwner
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
+import com.intellij.util.castSafelyTo
 import ru.curs.celesta.intellij.CelestaConstants
 
 class GeneratedClassesSearch(project: Project) {
     private val psiFacade: JavaPsiFacade = JavaPsiFacade.getInstance(project)
 
-    fun searchTableCursor(grainName: String, cursorName: String, searchScope: GlobalSearchScope): CelestaCursor? {
-        return searchCursor(grainName, cursorName, CursorType.TableCursor, searchScope)
-    }
-
-    fun searchMaterializedViewCursor(grainName: String, cursorName: String, searchScope: GlobalSearchScope): CelestaCursor? {
-        return searchCursor(grainName, cursorName, CursorType.MaterializedViewCursor, searchScope)
-    }
-
-    private fun searchCursor(grainName: String, cursorName: String, cursorType: CursorType, searchScope: GlobalSearchScope): CelestaCursor? = runReadAction {
-        val fqn = when (cursorType) {
-            CursorType.TableCursor -> CelestaConstants.CURSOR_FQN
-            CursorType.MaterializedViewCursor -> CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN
+    fun searchGeneratedClass(
+        grainName: String,
+        cursorName: String,
+        packageName: String,
+        objectType: ObjectType,
+        searchScope: GlobalSearchScope
+    ): CelestaGeneratedObject? = runReadAction {
+        val fqn = when (objectType) {
+            ObjectType.TableCursor -> CelestaConstants.CURSOR_FQN
+            ObjectType.MaterializedViewCursor -> CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN
+            ObjectType.Sequence -> CelestaConstants.SEQUENCE_FQN
         }
         val superClass = psiFacade.findClass(fqn, searchScope) ?: return@runReadAction null
 
         ClassInheritorsSearch.search(superClass, searchScope, true)
             .asSequence()
-            .map { CelestaCursor(it) }
-            .firstOrNull { it.cursorName == cursorName && it.grainName == grainName }
+            .map { CelestaGeneratedObject(it) }
+            .firstOrNull {
+                it.objectName == cursorName
+                        && it.grainName == grainName
+                        && it.objectClass.parent.castSafelyTo<PsiClassOwner>()?.packageName == packageName
+            }
     }
 
     companion object {

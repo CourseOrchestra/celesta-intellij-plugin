@@ -24,14 +24,19 @@
 
         <projectService serviceImplementation="ru.curs.celesta.intellij.generated.GeneratedClassesSearch"/>
 
+        <projectService serviceImplementation="ru.curs.celesta.intellij.autogenerate.LibraryModificationTracker"/>
+
         <codeInsight.lineMarkerProvider
                 implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedTableLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
                 implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedMaterializedViewLineMarkerProvider" language="JAVA"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedSequenceLineMarkerProvider" language="JAVA"/>
 
         <codeInsight.lineMarkerProvider
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaTableDefinitionLineMarkerProvider" language="SQL"/>
-
+        <codeInsight.lineMarkerProvider
+            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaSequenceDefinitionLineMarkerProvider" language="SQL"/>
         <codeInsight.lineMarkerProvider
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaMaterializedViewDefinitionLineMarkerProvider" language="SQL"/>
     </extensions>
@@ -39,5 +44,7 @@
     <projectListeners>
         <listener class="ru.curs.celesta.intellij.autogenerate.AutoGenerateSourcesListener"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
+        <listener class="ru.curs.celesta.intellij.autogenerate.AutoGenerateSourcesListener"
+                  topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>

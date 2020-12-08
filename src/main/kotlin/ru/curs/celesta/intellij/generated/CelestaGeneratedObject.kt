@@ -7,25 +7,25 @@ import com.intellij.psi.SmartPsiElementPointer
 import ru.curs.celesta.intellij.CelestaConstants
 import ru.curs.celesta.intellij.cachedValue
 
-class CelestaCursor private constructor(cursorClass: PsiClass) {
+class CelestaGeneratedObject private constructor(cursorClass: PsiClass) {
     private val pointer: SmartPsiElementPointer<PsiClass> = SmartPointerManager.createPointer(cursorClass)
 
-    val cursorClass: PsiClass
+    val objectClass: PsiClass
         get() = pointer.element
             ?: throw IllegalStateException()
 
     val grainName: String?
-        get() = getGrainName(cursorClass)
+        get() = getGrainName(objectClass)
 
-    val cursorName: String?
-        get() = getObjectName(cursorClass)
+    val objectName: String?
+        get() = getObjectName(objectClass)
 
-    val cursorType: CursorType?
-        get() = getCursorType(cursorClass)
+    val type: ObjectType?
+        get() = getCursorType(objectClass)
 
     companion object {
-        operator fun invoke(cursorClass: PsiClass): CelestaCursor = cursorClass.cachedValue {
-            CelestaCursor(this)
+        operator fun invoke(cursorClass: PsiClass): CelestaGeneratedObject = cursorClass.cachedValue {
+            CelestaGeneratedObject(this)
         }
 
         private fun getGrainName(cursorClass: PsiClass): String? = cursorClass.cachedValue {
@@ -36,19 +36,25 @@ class CelestaCursor private constructor(cursorClass: PsiClass) {
             getConstant(cursorClass, CelestaConstants.OBJECT_NAME_FIELD)
         }
 
-        private fun getCursorType(cursorClass: PsiClass): CursorType? = cursorClass.cachedValue {
+        private fun getCursorType(cursorClass: PsiClass): ObjectType? = cursorClass.cachedValue {
             val psiFacade = JavaPsiFacade.getInstance(project)
 
             val tableCursor = psiFacade.findClass(CelestaConstants.CURSOR_FQN, cursorClass.resolveScope)
             tableCursor?.let {
                 if(cursorClass.isInheritor(it, true))
-                    return@cachedValue CursorType.TableCursor
+                    return@cachedValue ObjectType.TableCursor
             }
 
             val materializedViewCursor = psiFacade.findClass(CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN, cursorClass.resolveScope)
             materializedViewCursor?.let {
                 if(cursorClass.isInheritor(it, true))
-                    return@cachedValue CursorType.MaterializedViewCursor
+                    return@cachedValue ObjectType.MaterializedViewCursor
+            }
+
+            val sequenceClass = psiFacade.findClass(CelestaConstants.SEQUENCE_FQN, cursorClass.resolveScope)
+            sequenceClass?.let {
+                if(cursorClass.isInheritor(it, true))
+                    return@cachedValue ObjectType.Sequence
             }
 
             return@cachedValue null
@@ -62,10 +68,9 @@ class CelestaCursor private constructor(cursorClass: PsiClass) {
                         .constantEvaluationHelper.computeConstantExpression(it)
                 } as? String
         }
-
     }
 }
 
-enum class CursorType {
-    TableCursor, MaterializedViewCursor
+enum class ObjectType {
+    TableCursor, MaterializedViewCursor, Sequence
 }

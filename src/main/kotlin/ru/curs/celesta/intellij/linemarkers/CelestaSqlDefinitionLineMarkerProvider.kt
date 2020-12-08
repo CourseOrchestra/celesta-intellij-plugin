@@ -16,18 +16,22 @@ import com.intellij.util.Function
 import com.intellij.util.PsiNavigateUtil
 import ru.curs.celesta.intellij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.intellij.CelestaBundle
+import ru.curs.celesta.intellij.CelestaConstants
 import ru.curs.celesta.intellij.generated.GeneratedClassesSearch
+import ru.curs.celesta.intellij.generated.ObjectType
 import ru.curs.celesta.intellij.prev
 import ru.curs.celesta.intellij.scores.CelestaGrain
 import java.awt.event.MouseEvent
 
 abstract class CelestaSqlDefinitionLineMarkerProvider : LineMarkerProvider {
 
-    protected abstract val type: SqlDefinitionNavigator.TargetType
+    protected abstract val type: ObjectType
 
     abstract fun check(element: PsiElement): Boolean
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
+        if(!CelestaConstants.isCelestaProject(element.project)) return null
+
         val matches = element.containingFile is SqlFile && check(element)
 
         if (!matches)
@@ -48,7 +52,7 @@ private val tooltipProvider: Function<in SqlTokenElement, String> = Function {
     CelestaBundle.message("lineMarker.sqlDefinition.hint")
 }
 
-class SqlDefinitionNavigator(project: Project, val type: TargetType) : BaseNavigator<SqlTokenElement>(project) {
+class SqlDefinitionNavigator(project: Project, val type: ObjectType) : BaseNavigator<SqlTokenElement>(project) {
     override fun navigate(e: MouseEvent?, elt: SqlTokenElement) {
         val element = findElementNavigateTo(elt)
         if (element != null)
@@ -67,31 +71,28 @@ class SqlDefinitionNavigator(project: Project, val type: TargetType) : BaseNavig
 
         val grainName = grain.grainName ?: fail("Unable to determine grain name")
 
+        val packageName = grain.packageName ?: fail("Unable to determine grain package")
+
         val module = ModuleUtilCore.findModuleForFile(elt.containingFile) ?: fail("Unable to determine module")
 
         val generatedClassesSearch = GeneratedClassesSearch.getInstance(project)
 
         val searchScope = module.getModuleWithDependenciesAndLibrariesScope(true)
 
-        val cursor = when (type) {
-            TargetType.Table -> generatedClassesSearch.searchTableCursor(grainName, objectName, searchScope)
-            TargetType.MaterializedView -> generatedClassesSearch.searchMaterializedViewCursor(
-                grainName,
-                objectName,
-                searchScope
-            )
-        }
+        val cursor = generatedClassesSearch.searchGeneratedClass(
+            grainName,
+            objectName,
+            packageName,
+            type,
+            searchScope
+        )
 
-        cursor?.cursorClass
-    }
-
-    enum class TargetType {
-        Table, MaterializedView
+        cursor?.objectClass
     }
 }
 
 class CelestaMaterializedViewDefinitionLineMarkerProvider : CelestaSqlDefinitionLineMarkerProvider() {
-    override val type: SqlDefinitionNavigator.TargetType = SqlDefinitionNavigator.TargetType.MaterializedView
+    override val type: ObjectType = ObjectType.MaterializedViewCursor
 
     override fun check(element: PsiElement): Boolean {
         return element.elementType == SqlElementTypes.SQL_IDENT
@@ -105,10 +106,19 @@ class CelestaMaterializedViewDefinitionLineMarkerProvider : CelestaSqlDefinition
 
 
 class CelestaTableDefinitionLineMarkerProvider : CelestaSqlDefinitionLineMarkerProvider() {
-    override val type: SqlDefinitionNavigator.TargetType = SqlDefinitionNavigator.TargetType.Table
+    override val type: ObjectType = ObjectType.TableCursor
 
     override fun check(element: PsiElement): Boolean =
         element.parent?.elementType == SqlElementTypes.SQL_IDENTIFIER
                 && element.parent?.parent?.elementType == SqlElementTypes.SQL_TABLE_REFERENCE
                 && element.parent?.parent?.parent?.elementType == SqlElementTypes.SQL_CREATE_TABLE_STATEMENT
+}
+
+class CelestaSequenceDefinitionLineMarkerProvider : CelestaSqlDefinitionLineMarkerProvider() {
+    override val type: ObjectType = ObjectType.Sequence
+
+    override fun check(element: PsiElement): Boolean =
+        element.parent?.elementType == SqlElementTypes.SQL_IDENTIFIER
+                && element.parent?.parent?.elementType == SqlElementTypes.SQL_SEQUENCE_REFERENCE
+                && element.parent?.parent?.parent?.elementType == SqlElementTypes.SQL_CREATE_SEQUENCE_STATEMENT
 }

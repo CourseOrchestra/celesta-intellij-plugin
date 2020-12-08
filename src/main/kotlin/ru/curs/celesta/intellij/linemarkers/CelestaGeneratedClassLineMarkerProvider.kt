@@ -6,18 +6,18 @@ import com.intellij.notification.NotificationType
 import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
-import com.intellij.psi.JavaPsiFacade
-import com.intellij.psi.PsiClass
-import com.intellij.psi.PsiElement
-import com.intellij.psi.PsiIdentifier
+import com.intellij.psi.*
+import com.intellij.psi.codeStyle.NameUtil
+import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.CommonProcessors
 import com.intellij.util.PsiNavigateUtil
+import com.intellij.util.text.NameUtilCore
 import icons.DatabaseIcons
 import ru.curs.celesta.intellij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.intellij.CelestaBundle
 import ru.curs.celesta.intellij.CelestaConstants
-import ru.curs.celesta.intellij.generated.CelestaCursor
+import ru.curs.celesta.intellij.generated.CelestaGeneratedObject
 import ru.curs.celesta.intellij.scores.CelestaGrain
 import ru.curs.celesta.intellij.scores.CelestaScoreSearch
 import java.awt.event.MouseEvent
@@ -28,6 +28,8 @@ abstract class CelestaGeneratedClassLineMarkerProvider : LineMarkerProvider {
 
     override fun getLineMarkerInfo(element: PsiElement): LineMarkerInfo<*>? {
         if (element !is PsiIdentifier) return null
+
+        if(!CelestaConstants.isCelestaProject(element.project)) return null
 
         val psiClass = element.parent as? PsiClass ?: return null
 
@@ -76,7 +78,9 @@ private class NavHandler(
     private fun findElementNavigateTo(elt: PsiIdentifier): PsiElement? = notificationOnFail {
         val cursorClass = elt.parentOfType<PsiClass>()!!
 
-        val cursor = CelestaCursor(cursorClass)
+        val packageName = (cursorClass.parent as? PsiClassOwner)?.packageName ?: ""
+
+        val cursor = CelestaGeneratedObject(cursorClass)
 
         val module = ModuleUtilCore.findModuleForPsiElement(elt)
             ?: fail(CelestaBundle.message("lineMarker.generatedSources.unknownModule", elt.containingFile.virtualFile.path))
@@ -84,7 +88,7 @@ private class NavHandler(
         val grainName = cursor.grainName
             ?: fail(CelestaBundle.message("lineMarker.generatedSources.unknownGrain"))
 
-        val tableName = cursor.cursorName
+        val objectName = cursor.objectName
             ?: fail(CelestaBundle.message("lineMarker.generatedSources.unknownObject"))
 
         val collectProcessor = CommonProcessors.CollectProcessor<CelestaGrain>()
@@ -93,8 +97,8 @@ private class NavHandler(
         collectProcessor
             .results
             .asSequence()
-            .filter { it.grainName == grainName }
-            .mapNotNull { it.objectExtractor(tableName) }
+            .filter { it.grainName == grainName && it.packageName == packageName }
+            .mapNotNull { it.objectExtractor(objectName) }
             .firstOrNull()
     }
 }
@@ -111,4 +115,10 @@ class GeneratedMaterializedViewLineMarkerProvider : CelestaGeneratedClassLineMar
     override val parentFqn = CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN
 
     override val objectExtractor: ObjectExtractor = { viewName -> materializedViews[viewName] }
+}
+
+class GeneratedSequenceLineMarkerProvider : CelestaGeneratedClassLineMarkerProvider() {
+    override val parentFqn = CelestaConstants.SEQUENCE_FQN
+
+    override val objectExtractor: ObjectExtractor = { seqName -> sequences[seqName] }
 }
