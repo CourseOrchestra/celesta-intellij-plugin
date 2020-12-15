@@ -20,11 +20,7 @@ class GeneratedClassesSearch(project: Project) {
         objectType: ObjectType,
         searchScope: GlobalSearchScope
     ): CelestaGeneratedObject? = runReadAction {
-        val fqn = when (objectType) {
-            ObjectType.TableCursor -> CelestaConstants.CURSOR_FQN
-            ObjectType.MaterializedViewCursor -> CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN
-            ObjectType.Sequence -> CelestaConstants.SEQUENCE_FQN
-        }
+        val fqn = objectType.parentFqn
         val superClass = psiFacade.findClass(fqn, searchScope) ?: return@runReadAction null
 
         ClassInheritorsSearch.search(superClass, searchScope, true)

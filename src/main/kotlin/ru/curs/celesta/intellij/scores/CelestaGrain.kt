@@ -6,10 +6,7 @@ import com.intellij.psi.util.CachedValueProvider
 import com.intellij.psi.util.CachedValuesManager
 import com.intellij.psi.util.elementType
 import com.intellij.psi.util.nextLeaf
-import com.intellij.sql.psi.SqlCreateStatement
-import com.intellij.sql.psi.SqlElementTypes
-import com.intellij.sql.psi.SqlFile
-import com.intellij.sql.psi.SqlTokens
+import com.intellij.sql.psi.*
 import com.intellij.sql.psi.impl.SqlTokenElement
 import com.intellij.util.castSafelyTo
 import ru.curs.celesta.intellij.cachedValue
@@ -33,10 +30,16 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
         get() = getTables(sqlFile)
 
     val materializedViews: Map<String, SqlTokenElement>
-        get() = getViews(sqlFile)
+        get() = getMaterializedViews(sqlFile)
 
     val sequences: Map<String, SqlCreateStatement>
         get() = getSequences(sqlFile)
+
+    val views: Map<String, SqlCreateStatement>
+        get() = getViews(sqlFile)
+
+    val functions: Map<String, SqlCreateStatement>
+        get() = getFunctions(sqlFile)
 
     val isTestGrain: Boolean
         get() = isTestGrain(sqlFile)
@@ -74,6 +77,18 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
                 .associateBy { it.name }
         }
 
+        private fun getViews(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
+            children.filterIsInstance<SqlCreateStatement>()
+                .filter { it.elementType == SqlElementTypes.SQL_CREATE_VIEW_STATEMENT }
+                .associateBy { it.name }
+        }
+
+        private fun getFunctions(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
+            children.filterIsInstance<SqlCreateStatement>()
+                .filter { it.elementType == SqlElementTypes.SQL_CREATE_FUNCTION_STATEMENT }
+                .associateBy { it.name }
+        }
+
         private fun isTestGrain(sqlFile: SqlFile): Boolean = sqlFile.cachedValue {
             resolvePackageName(this, true) != null
         }
@@ -104,7 +119,7 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
                 }.firstOrNull()
         }
 
-        private fun getViews(sqlFile: SqlFile): Map<String, SqlTokenElement> = sqlFile.cachedValue {
+        private fun getMaterializedViews(sqlFile: SqlFile): Map<String, SqlTokenElement> = sqlFile.cachedValue {
             children.filterIsInstance<SqlTokenElement>()
                 .filter { it.elementType == SqlTokens.SQL_VIEW }
                 .mapNotNull {

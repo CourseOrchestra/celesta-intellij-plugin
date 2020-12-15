@@ -32,6 +32,10 @@
                 implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedMaterializedViewLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
                 implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedSequenceLineMarkerProvider" language="JAVA"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedViewLineMarkerProvider" language="JAVA"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedFunctionLineMarkerProvider" language="JAVA"/>
 
         <codeInsight.lineMarkerProvider
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaTableDefinitionLineMarkerProvider" language="SQL"/>
@@ -39,6 +43,10 @@
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaSequenceDefinitionLineMarkerProvider" language="SQL"/>
         <codeInsight.lineMarkerProvider
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaMaterializedViewDefinitionLineMarkerProvider" language="SQL"/>
+        <codeInsight.lineMarkerProvider
+            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaViewDefinitionLineMarkerProvider" language="SQL"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaFunctionDefinitionLineMarkerProvider" language="SQL"/>
     </extensions>
 
     <projectListeners>

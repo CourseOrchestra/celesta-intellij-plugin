@@ -15,6 +15,10 @@ object CelestaConstants {
 
     const val SEQUENCE_FQN = "ru.curs.celesta.dbutils.Sequence"
 
+    const val VIEW_CURSOR_FQN = "ru.curs.celesta.dbutils.ViewCursor"
+
+    const val PARAMETRIZED_VIEW_CURSOR_FQN = "ru.curs.celesta.dbutils.ParameterizedViewCursor"
+
     const val DEFAULT_SOURCE_PATH = "src/main/celestasql"
     const val DEFAULT_TEST_SOURCE_PATH = "src/test/celestasql"
 

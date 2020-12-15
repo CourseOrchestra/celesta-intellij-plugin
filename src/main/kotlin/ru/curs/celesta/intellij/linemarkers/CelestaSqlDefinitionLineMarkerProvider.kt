@@ -122,3 +122,21 @@ class CelestaSequenceDefinitionLineMarkerProvider : CelestaSqlDefinitionLineMark
                 && element.parent?.parent?.elementType == SqlElementTypes.SQL_SEQUENCE_REFERENCE
                 && element.parent?.parent?.parent?.elementType == SqlElementTypes.SQL_CREATE_SEQUENCE_STATEMENT
 }
+
+class CelestaViewDefinitionLineMarkerProvider : CelestaSqlDefinitionLineMarkerProvider() {
+    override val type: ObjectType = ObjectType.View
+
+    override fun check(element: PsiElement): Boolean =
+        element.parent?.elementType == SqlElementTypes.SQL_IDENTIFIER
+                && element.parent?.parent?.elementType == SqlElementTypes.SQL_VIEW_REFERENCE
+                && element.parent?.parent?.parent?.elementType == SqlElementTypes.SQL_CREATE_VIEW_STATEMENT
+}
+
+class CelestaFunctionDefinitionLineMarkerProvider : CelestaSqlDefinitionLineMarkerProvider() {
+    override val type: ObjectType = ObjectType.Function
+
+    override fun check(element: PsiElement): Boolean =
+        element.parent?.elementType == SqlElementTypes.SQL_IDENTIFIER
+                && element.parent?.parent?.elementType == SqlElementTypes.SQL_FUNCTION_REFERENCE
+                && element.parent?.parent?.parent?.elementType == SqlElementTypes.SQL_CREATE_FUNCTION_STATEMENT
+}

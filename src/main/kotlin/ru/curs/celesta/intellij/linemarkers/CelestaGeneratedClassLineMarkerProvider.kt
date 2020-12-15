@@ -122,3 +122,15 @@ class GeneratedSequenceLineMarkerProvider : CelestaGeneratedClassLineMarkerProvi
 
     override val objectExtractor: ObjectExtractor = { seqName -> sequences[seqName] }
 }
+
+class GeneratedViewLineMarkerProvider : CelestaGeneratedClassLineMarkerProvider() {
+    override val parentFqn = CelestaConstants.VIEW_CURSOR_FQN
+
+    override val objectExtractor: ObjectExtractor = { viewName -> views[viewName] }
+}
+
+class GeneratedFunctionLineMarkerProvider : CelestaGeneratedClassLineMarkerProvider() {
+    override val parentFqn = CelestaConstants.PARAMETRIZED_VIEW_CURSOR_FQN
+
+    override val objectExtractor: ObjectExtractor = { funName -> functions[funName] }
+}

@@ -5,6 +5,7 @@ import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
@@ -42,6 +43,9 @@ import java.io.File
 
 class AutoGenerateSourcesListener(private val project: Project) : FileEditorManagerListener, BulkFileListener {
     override fun after(events: MutableList<out VFileEvent>) {
+        if(ApplicationManager.getApplication().isUnitTestMode)
+            return
+
         invokeLater {
             if (!CelestaConstants.isCelestaProject(project)) return@invokeLater
 
@@ -56,6 +60,9 @@ class AutoGenerateSourcesListener(private val project: Project) : FileEditorMana
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
+        if(ApplicationManager.getApplication().isUnitTestMode)
+            return
+
         invokeLater {
             if (!CelestaConstants.isCelestaProject(project)) return@invokeLater
 

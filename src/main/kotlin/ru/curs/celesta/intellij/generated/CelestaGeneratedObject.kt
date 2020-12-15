@@ -39,22 +39,13 @@ class CelestaGeneratedObject private constructor(cursorClass: PsiClass) {
         private fun getCursorType(cursorClass: PsiClass): ObjectType? = cursorClass.cachedValue {
             val psiFacade = JavaPsiFacade.getInstance(project)
 
-            val tableCursor = psiFacade.findClass(CelestaConstants.CURSOR_FQN, cursorClass.resolveScope)
-            tableCursor?.let {
-                if(cursorClass.isInheritor(it, true))
-                    return@cachedValue ObjectType.TableCursor
-            }
+            for (type in ObjectType.values()) {
+                psiFacade.findClass(type.parentFqn, cursorClass.resolveScope)?.let {
 
-            val materializedViewCursor = psiFacade.findClass(CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN, cursorClass.resolveScope)
-            materializedViewCursor?.let {
-                if(cursorClass.isInheritor(it, true))
-                    return@cachedValue ObjectType.MaterializedViewCursor
-            }
+                    if (cursorClass.isInheritor(it, true))
+                        return@cachedValue type
 
-            val sequenceClass = psiFacade.findClass(CelestaConstants.SEQUENCE_FQN, cursorClass.resolveScope)
-            sequenceClass?.let {
-                if(cursorClass.isInheritor(it, true))
-                    return@cachedValue ObjectType.Sequence
+                }
             }
 
             return@cachedValue null
@@ -72,5 +63,15 @@ class CelestaGeneratedObject private constructor(cursorClass: PsiClass) {
 }
 
 enum class ObjectType {
-    TableCursor, MaterializedViewCursor, Sequence
+    TableCursor, MaterializedViewCursor, Sequence, View, Function;
+
+    val parentFqn: String
+        get() = when (this) {
+            TableCursor -> CelestaConstants.CURSOR_FQN
+            MaterializedViewCursor -> CelestaConstants.MATERIALIZED_VIEW_CURSOR_FQN
+            Sequence -> CelestaConstants.SEQUENCE_FQN
+            View -> CelestaConstants.VIEW_CURSOR_FQN
+            Function -> CelestaConstants.PARAMETRIZED_VIEW_CURSOR_FQN
+        }
+
 }
