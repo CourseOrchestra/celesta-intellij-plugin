@@ -1,18 +1,24 @@
 package ru.curs.celesta.intellij.maven
 
+import com.intellij.ProjectTopics
 import com.intellij.ide.util.PropertiesComponent
+import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.application.runReadAction
 import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
+import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.profile.codeInspection.ProjectInspectionProfileManager
+import com.intellij.util.Function
+import org.jetbrains.annotations.NotNull
 import org.jetbrains.idea.maven.project.MavenProject
 import org.jetbrains.idea.maven.project.MavenProjectChanges
 import org.jetbrains.idea.maven.project.MavenProjectsManager
@@ -21,31 +27,77 @@ import org.jetbrains.idea.maven.server.NativeMavenProjectHolder
 import ru.curs.celesta.intellij.CelestaConstants
 import java.io.File
 
-class CelestaMavenManager(private val project: Project) {
+class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
 
     private val module2mavenProject: MutableMap<Module, MavenProject> = mutableMapOf()
 
     private val mavenProjectsManager = MavenProjectsManager.getInstance(project)
 
-    private val listener = object : MavenProjectsTree.Listener {
+    private val modulesListener = object: ModuleListener {
+        override fun moduleAdded(project: Project, module: Module) {
+            scheduleUpdate()
+        }
+
+        override fun beforeModuleRemoved(project: Project, module: Module) {
+            scheduleUpdate()
+        }
+
+        override fun moduleRemoved(project: Project, module: Module) {
+            scheduleUpdate()
+        }
+
+        override fun modulesRenamed(
+            project: Project,
+            modules: MutableList<Module>,
+            oldNameProvider: Function<Module, String>
+        ) {
+            scheduleUpdate()
+        }
+    }
+
+    private val mavenListener = object : MavenProjectsTree.Listener {
         override fun projectResolved(
             projectWithChanges: Pair<MavenProject, MavenProjectChanges>,
             nativeMavenProject: NativeMavenProjectHolder?
         ) {
-            updateProjects()
+            scheduleUpdate()
         }
 
         override fun projectsUpdated(
             updated: MutableList<Pair<MavenProject, MavenProjectChanges>>,
             deleted: MutableList<MavenProject>
         ) {
-            updateProjects()
+            scheduleUpdate()
+        }
+
+        override fun pluginsResolved(project: MavenProject) {
+            scheduleUpdate()
         }
 
         override fun foldersResolved(projectWithChanges: Pair<MavenProject, MavenProjectChanges>) {
-            reloadGeneratedSources(projectWithChanges)
+            invokeLater {
+                updateProjects()
+                reloadGeneratedSources(projectWithChanges)
+            }
         }
 
+        override fun projectsIgnoredStateChanged(
+            ignored: MutableList<MavenProject>,
+            unignored: MutableList<MavenProject>,
+            fromImport: Boolean
+        ) {
+            scheduleUpdate()
+        }
+
+        override fun profilesChanged() {
+            scheduleUpdate()
+        }
+    }
+
+    private fun scheduleUpdate() {
+        invokeLater {
+            updateProjects()
+        }
     }
 
     fun getCelestaSourcesRoots(mavenProject: MavenProject): List<VirtualFile> {
@@ -168,9 +220,11 @@ class CelestaMavenManager(private val project: Project) {
         }
     }
 
-    companion object {
-        const val DATASOURCE_INSPECTION_DISABLED = "dataSourceInspectionDisabled"
+    override fun dispose() {}
 
+    companion object {
+
+        const val DATASOURCE_INSPECTION_DISABLED = "dataSourceInspectionDisabled"
         fun getInstance(project: Project) = project.service<CelestaMavenManager>()
     }
 
@@ -179,11 +233,11 @@ class CelestaMavenManager(private val project: Project) {
             val mavenProjectsManager = MavenProjectsManager.getInstance(project)
             val celestaMavenManager = project.service<CelestaMavenManager>()
 
-            mavenProjectsManager.addProjectsTreeListener(celestaMavenManager.listener)
-
+            mavenProjectsManager.addProjectsTreeListener(celestaMavenManager.mavenListener)
             celestaMavenManager.updateProjects()
+
+            project.messageBus.connect(celestaMavenManager).subscribe(ProjectTopics.MODULES, celestaMavenManager.modulesListener)
         }
     }
-
 }
 

@@ -5,6 +5,7 @@ import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.application.invokeLater
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
@@ -41,27 +42,31 @@ import java.io.File
 
 class AutoGenerateSourcesListener(private val project: Project) : FileEditorManagerListener, BulkFileListener {
     override fun after(events: MutableList<out VFileEvent>) {
-        if (!CelestaConstants.isCelestaProject(project)) return
+        invokeLater {
+            if (!CelestaConstants.isCelestaProject(project)) return@invokeLater
 
-        val suitableEvents = events.filter {
-            it !is VFilePropertyChangeEvent && it !is VFileDeleteEvent
-        }
+            val suitableEvents = events.filter {
+                it !is VFilePropertyChangeEvent && it !is VFileDeleteEvent
+            }
 
-        for (event in suitableEvents) {
-            event.file?.let { processFile(it) }
+            for (event in suitableEvents) {
+                event.file?.let { processFile(it) }
+            }
         }
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        if (!CelestaConstants.isCelestaProject(project)) return
+        invokeLater {
+            if (!CelestaConstants.isCelestaProject(project)) return@invokeLater
 
-        val file = event.oldFile ?: return
+            val file = event.oldFile ?: return@invokeLater
 
-        processFile(file)
+            processFile(file)
+        }
     }
 
     private fun processFile(file: @Nullable VirtualFile) {
-        if (file.fileType != SqlFileType.INSTANCE)
+        if (file.fileType != SqlFileType.INSTANCE || !file.isValid)
             return
 
         val celestaGrain =
