@@ -2,10 +2,7 @@ package ru.curs.celesta.intellij.scores
 
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.psi.*
-import com.intellij.psi.util.CachedValueProvider
-import com.intellij.psi.util.CachedValuesManager
-import com.intellij.psi.util.elementType
-import com.intellij.psi.util.nextLeaf
+import com.intellij.psi.util.*
 import com.intellij.sql.psi.*
 import com.intellij.sql.psi.impl.SqlTokenElement
 import com.intellij.util.castSafelyTo
@@ -58,33 +55,45 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
             if (schemaName != null)
                 return@cachedValue schemaName
 
-            // create grain statement
-            val firstIdentifier = children.firstOrNull { it.elementType == SqlTokens.SQL_IDENT }?.takeIf { it.prev()?.text == "GRAIN" }
-                ?: return@cachedValue null
+            val leafElements: MutableList<PsiElement> = mutableListOf()
 
-            return@cachedValue firstIdentifier.text
+            accept(object : PsiRecursiveElementVisitor() {
+                override fun visitElement(element: PsiElement) {
+                    if(leafElements.size >= 3)
+                        return
+
+                    if(element !is PsiWhiteSpace && element !is PsiComment && element.children.isEmpty()) {
+                        leafElements.add(element)
+                    }
+                    super.visitElement(element)
+                }
+            })
+
+            return@cachedValue leafElements.getOrNull(2)?.takeIf {
+                it.prev()?.text.equals("GRAIN", true)
+            }?.text
         }
 
         private fun getTables(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
-            children.filterIsInstance<SqlCreateStatement>()
+            PsiTreeUtil.findChildrenOfType(sqlFile,  SqlCreateStatement::class.java)
                 .filter { it.elementType == SqlElementTypes.SQL_CREATE_TABLE_STATEMENT }
                 .associateBy { it.name }
         }
 
         private fun getSequences(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
-            children.filterIsInstance<SqlCreateStatement>()
+            PsiTreeUtil.findChildrenOfType(sqlFile,  SqlCreateStatement::class.java)
                 .filter { it.elementType == SqlElementTypes.SQL_CREATE_SEQUENCE_STATEMENT }
                 .associateBy { it.name }
         }
 
         private fun getViews(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
-            children.filterIsInstance<SqlCreateStatement>()
+            PsiTreeUtil.findChildrenOfType(sqlFile,  SqlCreateStatement::class.java)
                 .filter { it.elementType == SqlElementTypes.SQL_CREATE_VIEW_STATEMENT }
                 .associateBy { it.name }
         }
 
         private fun getFunctions(sqlFile: SqlFile): Map<String, SqlCreateStatement> = sqlFile.cachedValue {
-            children.filterIsInstance<SqlCreateStatement>()
+            PsiTreeUtil.findChildrenOfType(sqlFile,  SqlCreateStatement::class.java)
                 .filter { it.elementType == SqlElementTypes.SQL_CREATE_FUNCTION_STATEMENT }
                 .associateBy { it.name }
         }

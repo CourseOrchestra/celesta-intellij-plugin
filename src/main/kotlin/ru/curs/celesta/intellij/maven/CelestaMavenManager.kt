@@ -122,7 +122,7 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
             configuration.getChild(configElementName)
                 ?.getChildren("score")
                 ?.mapNotNull {
-                    it.getChild("path")?.text
+                    it.getChild("path")?.text?.replace('\\', '/')
                 }?.map {
                     it.removePrefix(mavenProject.path.removeSuffix("pom.xml"))
                 }
