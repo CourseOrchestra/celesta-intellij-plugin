@@ -47,14 +47,6 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
         }
 
         private fun getScoreName(sqlFile: SqlFile): String? = sqlFile.cachedValue {
-            val schemaName = children.firstOrNull {
-                it.elementType == SqlElementTypes.SQL_CREATE_SCHEMA_STATEMENT
-            }.castSafelyTo<SqlCreateStatement>()
-                ?.name
-
-            if (schemaName != null)
-                return@cachedValue schemaName
-
             val leafElements: MutableList<PsiElement> = mutableListOf()
 
             accept(object : PsiRecursiveElementVisitor() {
@@ -70,7 +62,7 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
             })
 
             return@cachedValue leafElements.getOrNull(2)?.takeIf {
-                it.prev()?.text.equals("GRAIN", true)
+                it.prev()?.text.equals("GRAIN", true) || it.prev()?.text.equals("SCHEMA", true)
             }?.text
         }
 
@@ -129,8 +121,8 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
         }
 
         private fun getMaterializedViews(sqlFile: SqlFile): Map<String, SqlTokenElement> = sqlFile.cachedValue {
-            children.filterIsInstance<SqlTokenElement>()
-                .filter { it.elementType == SqlTokens.SQL_VIEW }
+            PsiTreeUtil.findChildrenOfType(sqlFile,  SqlTokenElement::class.java)
+                .filter { it.elementType == SqlTokens.SQL_VIEW && it.prev()?.text.equals("MATERIALIZED", true) }
                 .mapNotNull {
                     it.next() as? SqlTokenElement
                 }.filter {
