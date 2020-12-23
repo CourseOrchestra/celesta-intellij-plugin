@@ -17,6 +17,7 @@ import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.profile.codeInspection.ProjectInspectionProfileManager
+import com.intellij.psi.search.scope.ProjectFilesScope
 import com.intellij.util.Function
 import org.jetbrains.annotations.NotNull
 import org.jetbrains.idea.maven.project.MavenProject
@@ -214,6 +215,7 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         if (!propertiesComponent.getBoolean(DATASOURCE_INSPECTION_DISABLED, false)) {
 
             val currentProfile = ProjectInspectionProfileManager.getInstance(project).currentProfile
+            currentProfile.disableTools(listOf("SqlNoDataSourceInspection", "SqlDialectInspection"), ProjectFilesScope(), project)
             currentProfile.disableToolByDefault(listOf("SqlNoDataSourceInspection", "SqlDialectInspection"), project)
 
             propertiesComponent.setValue(DATASOURCE_INSPECTION_DISABLED, true)
@@ -224,7 +226,7 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
 
     companion object {
 
-        const val DATASOURCE_INSPECTION_DISABLED = "dataSourceInspectionDisabled"
+        const val DATASOURCE_INSPECTION_DISABLED = "dataSourceInspectionDisabled2"
         fun getInstance(project: Project) = project.service<CelestaMavenManager>()
     }
 

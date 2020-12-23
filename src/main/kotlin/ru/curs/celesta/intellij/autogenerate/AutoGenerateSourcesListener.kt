@@ -16,6 +16,11 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.projectRoots.JavaSdk
+import com.intellij.openapi.projectRoots.JavaSdkVersion
+import com.intellij.openapi.projectRoots.Sdk
+import com.intellij.openapi.roots.ProjectRootManager
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
@@ -28,12 +33,13 @@ import com.intellij.sql.SqlFileType
 import com.intellij.sql.psi.SqlFile
 import com.intellij.util.castSafelyTo
 import org.jetbrains.annotations.Nullable
+import org.jetbrains.idea.maven.buildtool.MavenSyncConsole
+import org.jetbrains.idea.maven.execution.MavenExecutionOptions
 import org.jetbrains.idea.maven.execution.MavenRunConfigurationType
 import org.jetbrains.idea.maven.execution.MavenRunnerParameters
-import org.jetbrains.idea.maven.project.MavenEmbeddersManager
-import org.jetbrains.idea.maven.project.MavenProject
-import org.jetbrains.idea.maven.project.MavenProjectsManager
+import org.jetbrains.idea.maven.project.*
 import org.jetbrains.idea.maven.server.MavenServerExecutionResult
+import org.jetbrains.idea.maven.utils.MavenProgressIndicator
 import ru.curs.celesta.intellij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.intellij.CelestaConstants
 import ru.curs.celesta.intellij.cachedValue
@@ -43,7 +49,7 @@ import java.io.File
 
 class AutoGenerateSourcesListener(private val project: Project) : FileEditorManagerListener, BulkFileListener {
     override fun after(events: MutableList<out VFileEvent>) {
-        if(ApplicationManager.getApplication().isUnitTestMode)
+        if (ApplicationManager.getApplication().isUnitTestMode)
             return
 
         invokeLater {
@@ -60,7 +66,7 @@ class AutoGenerateSourcesListener(private val project: Project) : FileEditorMana
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
-        if(ApplicationManager.getApplication().isUnitTestMode)
+        if (ApplicationManager.getApplication().isUnitTestMode)
             return
 
         invokeLater {
@@ -139,15 +145,74 @@ private class RunMavenAction(
     }
 }
 
+private var jdkProblemNotified: Boolean = false
+
 private class GenerateSourcesTask(project: Project, val mavenProject: MavenProject) :
     Task.Backgroundable(project, "Generate Sources") {
     private val projectsManager = MavenProjectsManager.getInstance(project)
 
     override fun run(indicator: ProgressIndicator) {
-        val embedder = projectsManager.embeddersManager.getEmbedder(
-            mavenProject,
-            MavenEmbeddersManager.FOR_PLUGINS_RESOLVE
-        )
+        var jdkChanged = false
+
+        val projectSdk: Sdk? = ProjectRootManager.getInstance(project).projectSdk
+        if (projectSdk != null) {
+            if(JavaSdk.getInstance().getVersion(projectSdk) != JavaSdkVersion.JDK_1_8) {
+                if(!jdkProblemNotified) {
+                    jdkProblemNotified = true
+
+                    CELESTA_NOTIFICATIONS
+                        .createNotification(
+                            "Only JDK 1.8 is supported now",
+                            NotificationType.ERROR
+                        )
+                        .notify(project)
+                }
+                return
+            }
+
+            jdkProblemNotified = false
+
+            val importingSettings = MavenWorkspaceSettingsComponent.getInstance(project).settings.importingSettings
+
+            jdkChanged = importingSettings.jdkForImporter != projectSdk.name
+
+            importingSettings.jdkForImporter = projectSdk.name
+        } else {
+            if(!jdkProblemNotified) {
+                jdkProblemNotified = true
+
+                CELESTA_NOTIFICATIONS
+                    .createNotification(
+                        "Specify project JDK to generate celesta sql sources",
+                        NotificationType.ERROR
+                    )
+                    .notify(project)
+            }
+            return
+        }
+
+        fun getEmbedder() = projectsManager.embeddersManager.getEmbedder(mavenProject, FOR_SOURCE_GENERATION)
+
+        if(jdkChanged)
+            projectsManager.embeddersManager.release(getEmbedder())
+
+        val embedder = getEmbedder()
+
+        val logsCollector: MutableList<String> = mutableListOf()
+
+        val mavenProgressIndicator = MavenProgressIndicator { MavenSyncConsole(myProject) }
+
+        embedder.customizeForResolve(object : MavenConsole(MavenExecutionOptions.LoggingLevel.INFO, true) {
+            override fun canPause(): Boolean = false
+
+            override fun isOutputPaused(): Boolean = false
+
+            override fun setOutputPaused(outputPaused: Boolean) {}
+
+            override fun doPrint(text: String, type: OutputType?) {
+                logsCollector.add(text)
+            }
+        }, mavenProgressIndicator)
 
         val profiles = mavenProject.activatedProfilesIds
 
@@ -162,6 +227,14 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
             VfsUtil.markDirtyAndRefresh(true, true, true, File(mavenProject.buildDirectory))
             return
         }
+
+        logger<GenerateSourcesTask>().info(
+            """Source generation failed: 
+#========START MAVEN LOGS========
+${logsCollector.joinToString(separator = "")} 
+#========END MAVEN LOGS========
+"""
+        )
 
         result.problems
             .takeIf {
@@ -192,6 +265,10 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
             )
             .addAction(RunMavenAction(project, mavenProject, projectsManager))
             .notify(project)
+    }
+
+    companion object {
+        private val FOR_SOURCE_GENERATION: Key<*> = Key.create<Any>(AutoGenerateSourcesListener::class.java.toString() + ".FOR_SOURCE_GENERATION")
     }
 
 }
