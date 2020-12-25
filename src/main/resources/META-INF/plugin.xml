@@ -4,7 +4,7 @@
     <vendor email="support@corchestra.ru" url="https://corchestra.ru/">CourseOrchestra</vendor>
 
     <description><![CDATA[
-        Celesta is a tool for Java backend developers who want easier ways to deliver RDBMS-backed software.
+        <a href="https://github.com/courseorchestra/celesta">Celesta</a> is a tool for Java backend developers who want easier ways to deliver RDBMS-backed software.
         This is a Java library with a Maven plugin that provides database migrations, ORM and testing.
     ]]></description>
 

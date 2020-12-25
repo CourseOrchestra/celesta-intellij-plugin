@@ -8,7 +8,7 @@ plugins {
 }
 
 group 'ru.curs.celesta.intellij'
-version '0.1-SNAPSHOT'
+version '1.0b'
 
 ext.verifierIdeVersions = ["IU-2020.1.4", "IU-2020.2.3", "IU-2020.3"]
 
@@ -57,7 +57,5 @@ compileTestKotlin {
 }
 
 patchPluginXml {
-    changeNotes """
-      Add change notes here.<br>
-      <em>most HTML tags may be used</em>"""
+    changeNotes new File('changelog.html').getText('UTF-8')
 }
