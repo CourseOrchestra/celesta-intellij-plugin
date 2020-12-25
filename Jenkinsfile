@@ -20,7 +20,7 @@ node {
     }
 
     stage ('Build Plugin') {
-        rtGradle.run buildFile: 'build.gradle', tasks: 'buildPlugin', buildInfo: buildInfo
+        rtGradle.run buildFile: 'build.gradle', tasks: 'clean buildPlugin', buildInfo: buildInfo
     }
 
     if (env.BRANCH_NAME == 'master') {
