@@ -21,13 +21,20 @@ node {
 
     stage ('Build Plugin') {
         rtGradle.run buildFile: 'build.gradle', tasks: 'buildPlugin', buildInfo: buildInfo
-
-        archiveArtifacts artifacts: 'build/distributions/*.zip', fingerprint: true
     }
-
 
     if (env.BRANCH_NAME == 'master') {
         stage ('Publish build info') {
+            def uploadSpec = """
+                        {
+                         "files": [
+                            {
+                              "pattern": "build/distributions/*.zip",
+                              "target": "generic/celesta-intellij-plugin/${currentBuild.number}/"
+                            }
+                            ]
+                        }"""
+            buildInfo = server.upload spec: uploadSpec
             server.publishBuildInfo buildInfo
         }
     }
