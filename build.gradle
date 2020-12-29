@@ -8,7 +8,7 @@ plugins {
 }
 
 group 'ru.curs.celesta.intellij'
-version '1.0b'
+version '1.0'
 
 ext.verifierIdeVersions = ["IU-2020.1.4", "IU-2020.2.3", "IU-2020.3"]
 
