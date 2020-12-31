@@ -13,7 +13,6 @@
     <depends>com.intellij.modules.sql</depends>
 
     <depends>org.jetbrains.idea.maven</depends>
-    <depends>org.jetbrains.idea.maven.model</depends>
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="ru.curs.celesta.intellij.maven.CelestaMavenManager$StartupActivity"/>
