@@ -10,7 +10,7 @@ plugins {
 group 'ru.curs.celesta.intellij'
 version '1.01'
 
-ext.verifierIdeVersions = ["IU-2020.1.4", "IU-2020.2.3", "IU-2020.3"]
+ext.verifierIdeVersions = ["IU-2020.1.4", "IU-2020.2.3", "IU-2020.3", "IU-2021.1"]
 
 repositories {
     mavenCentral()
