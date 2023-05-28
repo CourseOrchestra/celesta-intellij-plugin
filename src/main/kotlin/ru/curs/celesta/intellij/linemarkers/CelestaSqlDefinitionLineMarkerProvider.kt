@@ -71,7 +71,7 @@ class SqlDefinitionNavigator(project: Project, val type: ObjectType) : BaseNavig
 
         val grainName = grain.grainName ?: fail("Unable to determine grain name")
 
-        val packageName = grain.packageName ?: fail("Unable to determine grain package")
+        val packageName = grain.packageName
 
         val module = ModuleUtilCore.findModuleForFile(elt.containingFile) ?: fail("Unable to determine module")
 

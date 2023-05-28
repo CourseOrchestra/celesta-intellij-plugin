@@ -152,7 +152,7 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
     private val projectsManager = MavenProjectsManager.getInstance(project)
 
     override fun run(indicator: ProgressIndicator) {
-        var jdkChanged = false
+        val jdkChanged: Boolean
 
         val projectSdk: Sdk? = ProjectRootManager.getInstance(project).projectSdk
         if (projectSdk != null) {
