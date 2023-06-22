@@ -59,6 +59,6 @@ compileTestKotlin {
 
 patchPluginXml {
     changeNotes = new File("changelog.html").getText("UTF-8")
-    sinceBuild = "232"
-    untilBuild = "232.*"
+    sinceBuild = "231"
+    untilBuild = "231.*"
 }
