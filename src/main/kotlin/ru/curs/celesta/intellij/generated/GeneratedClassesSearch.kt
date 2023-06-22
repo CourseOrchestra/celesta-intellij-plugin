@@ -7,8 +7,7 @@ import com.intellij.psi.JavaPsiFacade
 import com.intellij.psi.PsiClassOwner
 import com.intellij.psi.search.GlobalSearchScope
 import com.intellij.psi.search.searches.ClassInheritorsSearch
-import com.intellij.util.castSafelyTo
-import ru.curs.celesta.intellij.CelestaConstants
+import ru.curs.celesta.intellij.castSafelyTo
 
 class GeneratedClassesSearch(project: Project) {
     private val psiFacade: JavaPsiFacade = JavaPsiFacade.getInstance(project)

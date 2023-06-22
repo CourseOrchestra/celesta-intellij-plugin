@@ -5,7 +5,6 @@ import com.intellij.psi.*
 import com.intellij.psi.util.*
 import com.intellij.sql.psi.*
 import com.intellij.sql.psi.impl.SqlTokenElement
-import com.intellij.util.castSafelyTo
 import ru.curs.celesta.intellij.cachedValue
 import ru.curs.celesta.intellij.maven.CelestaMavenManager
 import ru.curs.celesta.intellij.prev

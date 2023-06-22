@@ -2,15 +2,15 @@ import org.jetbrains.gradle.ext.Gradle
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask
 
 plugins {
-    id "org.jetbrains.intellij" version "0.6.1"
-    id "org.jetbrains.kotlin.jvm" version "1.4.10"
-    id "org.jetbrains.gradle.plugin.idea-ext" version "0.7"
+    id "java"
+    id "org.jetbrains.intellij" version "1.13.3"
+    id "org.jetbrains.kotlin.jvm" version "1.8.20"
 }
 
 group "ru.curs.celesta.intellij"
 version "1.03"
 
-ext.verifierIdeVersions = ["IU-2020.1.4", "IU-2020.2.3", "IU-2020.3", "IU-2021.1"]
+ext.verifierIdeVersions = ["IU-2023.1.1"]
 
 repositories {
     mavenCentral()
@@ -39,9 +39,9 @@ idea {
 }
 
 intellij {
-    version = "2020.2.3"
-    type = "IU"
-    plugins = ["PersistenceSupport", "DatabaseTools", "JPA", "java", "maven", "maven-model"]
+    version.set("2023.1.1")
+    type.set("IU")
+    plugins = ["DatabaseTools", "JPA", "java", "maven", "maven-model"]
 }
 
 runPluginVerifier {
@@ -50,15 +50,15 @@ runPluginVerifier {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "17"
 }
 
 compileTestKotlin {
-    kotlinOptions.jvmTarget = "1.8"
+    kotlinOptions.jvmTarget = "17"
 }
 
 patchPluginXml {
     changeNotes = new File("changelog.html").getText("UTF-8")
-    sinceBuild = "202"
-    untilBuild = "231.*"
+    sinceBuild = "232"
+    untilBuild = "232.*"
 }

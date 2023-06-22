@@ -13,6 +13,7 @@ import com.intellij.openapi.module.ModuleManager
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
+import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.util.Pair
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
@@ -49,8 +50,8 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
 
         override fun modulesRenamed(
             project: Project,
-            modules: MutableList<Module>,
-            oldNameProvider: Function<Module, String>
+            modules: MutableList<out Module>,
+            oldNameProvider: Function<in Module, String>
         ) {
             scheduleUpdate()
         }
@@ -230,8 +231,8 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         fun getInstance(project: Project) = project.service<CelestaMavenManager>()
     }
 
-    class StartupActivity : com.intellij.openapi.startup.StartupActivity {
-        override fun runActivity(project: Project) {
+    class StartupActivity : ProjectActivity {
+        override suspend fun execute(project: Project) {
             val mavenProjectsManager = MavenProjectsManager.getInstance(project)
             val celestaMavenManager = project.service<CelestaMavenManager>()
 
