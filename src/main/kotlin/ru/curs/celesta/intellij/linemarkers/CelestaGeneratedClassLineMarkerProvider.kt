@@ -45,7 +45,9 @@ abstract class CelestaGeneratedClassLineMarkerProvider : LineMarkerProvider {
                 tooltipProvider,
                 NavHandler(element.project, objectExtractor),
                 GutterIconRenderer.Alignment.CENTER
-            )
+            ) {
+                "Go to sql"
+            }
         }
 
         return null

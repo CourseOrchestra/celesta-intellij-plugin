@@ -44,7 +44,9 @@ abstract class CelestaSqlDefinitionLineMarkerProvider : LineMarkerProvider {
             tooltipProvider,
             SqlDefinitionNavigator(element.project, type),
             GutterIconRenderer.Alignment.CENTER
-        )
+        ) {
+            "Go to class"
+        }
     }
 }
 

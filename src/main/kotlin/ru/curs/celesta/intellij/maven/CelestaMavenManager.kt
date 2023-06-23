@@ -35,8 +35,8 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
 
     private val mavenProjectsManager = MavenProjectsManager.getInstance(project)
 
-    private val modulesListener = object: ModuleListener {
-        override fun moduleAdded(project: Project, module: Module) {
+    private val modulesListener = object : ModuleListener {
+        override fun modulesAdded(project: Project, modules: MutableList<out Module>) {
             scheduleUpdate()
         }
 
@@ -216,7 +216,11 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         if (!propertiesComponent.getBoolean(DATASOURCE_INSPECTION_DISABLED, false)) {
 
             val currentProfile = ProjectInspectionProfileManager.getInstance(project).currentProfile
-            currentProfile.disableTools(listOf("SqlNoDataSourceInspection", "SqlDialectInspection"), ProjectFilesScope(), project)
+            currentProfile.disableTools(
+                listOf("SqlNoDataSourceInspection", "SqlDialectInspection"),
+                ProjectFilesScope(),
+                project
+            )
             currentProfile.disableToolByDefault(listOf("SqlNoDataSourceInspection", "SqlDialectInspection"), project)
 
             propertiesComponent.setValue(DATASOURCE_INSPECTION_DISABLED, true)
@@ -239,7 +243,8 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
             mavenProjectsManager.addProjectsTreeListener(celestaMavenManager.mavenListener)
             celestaMavenManager.updateProjects()
 
-            project.messageBus.connect(celestaMavenManager).subscribe(ProjectTopics.MODULES, celestaMavenManager.modulesListener)
+            project.messageBus.connect(celestaMavenManager)
+                .subscribe(ProjectTopics.MODULES, celestaMavenManager.modulesListener)
         }
     }
 }

@@ -46,6 +46,13 @@
             implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaViewDefinitionLineMarkerProvider" language="SQL"/>
         <codeInsight.lineMarkerProvider
                 implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaFunctionDefinitionLineMarkerProvider" language="SQL"/>
+
+        <notificationGroup
+                id="celesta.balloon"
+                displayType="BALLOON"
+                key="celesta.balloon.title"
+                bundle="messages.Celesta"
+                isLogByDefault="true"/>
     </extensions>
 
     <projectListeners>

@@ -75,7 +75,7 @@ class LibraryModificationTracker(project: Project) : SimpleModificationTracker()
         })
     }
 
-    private val projectFileIndex = ProjectFileIndex.SERVICE.getInstance(project)
+    private val projectFileIndex = ProjectFileIndex.getInstance(project)
 
     private inline fun processBulk(events: List<VFileEvent>, check: (VirtualFile) -> Boolean) {
         events.forEach { event ->
@@ -99,4 +99,4 @@ class LibraryModificationTracker(project: Project) : SimpleModificationTracker()
 }
 
 private fun isRelevantEvent(vFileEvent: VFileEvent) =
-        vFileEvent is VFileCreateEvent || vFileEvent is VFileMoveEvent || vFileEvent is VFileCopyEvent
+    vFileEvent is VFileCreateEvent || vFileEvent is VFileMoveEvent || vFileEvent is VFileCopyEvent

@@ -4,6 +4,7 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
+import com.intellij.notification.NotificationsManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.invokeLater
@@ -159,6 +160,7 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
             if (!JavaSdk.getInstance().isOfVersionOrHigher(projectSdk, JavaSdkVersion.JDK_1_8)) {
                 if (!jdkProblemNotified) {
                     jdkProblemNotified = true
+
 
                     CELESTA_NOTIFICATIONS
                         .createNotification(
