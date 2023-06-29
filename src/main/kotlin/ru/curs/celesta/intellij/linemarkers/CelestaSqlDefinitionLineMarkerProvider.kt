@@ -22,6 +22,7 @@ import ru.curs.celesta.intellij.generated.ObjectType
 import ru.curs.celesta.intellij.prev
 import ru.curs.celesta.intellij.scores.CelestaGrain
 import java.awt.event.MouseEvent
+import java.util.*
 
 abstract class CelestaSqlDefinitionLineMarkerProvider : LineMarkerProvider {
 
@@ -44,7 +45,9 @@ abstract class CelestaSqlDefinitionLineMarkerProvider : LineMarkerProvider {
             tooltipProvider,
             SqlDefinitionNavigator(element.project, type),
             GutterIconRenderer.Alignment.CENTER
-        )
+        ) {
+            "Go to class"
+        }
     }
 }
 
@@ -98,7 +101,7 @@ class CelestaMaterializedViewDefinitionLineMarkerProvider : CelestaSqlDefinition
         return element.elementType == SqlElementTypes.SQL_IDENT
                 && element.prev()?.elementType == SqlElementTypes.SQL_VIEW
                 && element.prev().prev()?.let {
-            it.elementType == SqlElementTypes.SQL_IDENT && it.text.toLowerCase() == "materialized"
+            it.elementType == SqlElementTypes.SQL_IDENT && it.text.lowercase(Locale.getDefault()) == "materialized"
         } ?: false
                 && element.prev().prev().prev()?.elementType == SqlElementTypes.SQL_CREATE
     }

@@ -4,6 +4,7 @@ import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
+import com.intellij.notification.NotificationsManager
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.invokeLater
@@ -31,7 +32,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.sql.SqlFileType
 import com.intellij.sql.psi.SqlFile
-import com.intellij.util.castSafelyTo
 import org.jetbrains.annotations.Nullable
 import org.jetbrains.idea.maven.buildtool.MavenSyncConsole
 import org.jetbrains.idea.maven.execution.MavenExecutionOptions
@@ -43,6 +43,7 @@ import org.jetbrains.idea.maven.utils.MavenProgressIndicator
 import ru.curs.celesta.intellij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.intellij.CelestaConstants
 import ru.curs.celesta.intellij.cachedValue
+import ru.curs.celesta.intellij.castSafelyTo
 import ru.curs.celesta.intellij.maven.CelestaMavenManager
 import ru.curs.celesta.intellij.scores.CelestaGrain
 import java.io.File
@@ -156,9 +157,10 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
 
         val projectSdk: Sdk? = ProjectRootManager.getInstance(project).projectSdk
         if (projectSdk != null) {
-            if(JavaSdk.getInstance().getVersion(projectSdk) != JavaSdkVersion.JDK_1_8) {
-                if(!jdkProblemNotified) {
+            if (!JavaSdk.getInstance().isOfVersionOrHigher(projectSdk, JavaSdkVersion.JDK_1_8)) {
+                if (!jdkProblemNotified) {
                     jdkProblemNotified = true
+
 
                     CELESTA_NOTIFICATIONS
                         .createNotification(
@@ -172,13 +174,13 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
 
             jdkProblemNotified = false
 
-            val importingSettings = MavenWorkspaceSettingsComponent.getInstance(project).settings.importingSettings
+            val importingSettings = MavenWorkspaceSettingsComponent.getInstance(project).settings.getImportingSettings()
 
             jdkChanged = importingSettings.jdkForImporter != projectSdk.name
 
             importingSettings.jdkForImporter = projectSdk.name
         } else {
-            if(!jdkProblemNotified) {
+            if (!jdkProblemNotified) {
                 jdkProblemNotified = true
 
                 CELESTA_NOTIFICATIONS
@@ -193,14 +195,14 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
 
         fun getEmbedder() = projectsManager.embeddersManager.getEmbedder(mavenProject, FOR_SOURCE_GENERATION)
 
-        if(jdkChanged)
+        if (jdkChanged)
             projectsManager.embeddersManager.release(getEmbedder())
 
         val embedder = getEmbedder()
 
         val logsCollector: MutableList<String> = mutableListOf()
 
-        val mavenProgressIndicator = MavenProgressIndicator { MavenSyncConsole(myProject) }
+        val mavenProgressIndicator = MavenProgressIndicator(project) { MavenSyncConsole(project) }
 
         embedder.customizeForResolve(object : MavenConsole(MavenExecutionOptions.LoggingLevel.INFO, true) {
             override fun canPause(): Boolean = false
@@ -220,7 +222,7 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
             mavenProject.file,
             profiles.enabledProfiles,
             profiles.disabledProfiles,
-            listOf("generate-sources", "generate-test-sources")
+            listOf("celesta:gen-cursors", "celesta:gen-score-resources", "celesta:gen-test-cursors", "celesta:gen-test-score-resources")
         )
 
         if (result.problems.isEmpty()) {
@@ -240,13 +242,13 @@ ${logsCollector.joinToString(separator = "")}
             .takeIf {
                 it.isNotEmpty()
             }?.joinToString(separator = "\n") {
-                it.description
+                it.description ?: ""
             }?.let {
                 logger<GenerateSourcesTask>().warn("Errors during sources generation: $it")
             }
 
         for (problem in result.problems) {
-            if (problem.description.contains("celesta-maven-plugin")) {
+            if (problem.description?.contains("celesta-maven-plugin") == true) {
                 CELESTA_NOTIFICATIONS
                     .createNotification(
                         "Error during generation in celesta",
@@ -268,7 +270,8 @@ ${logsCollector.joinToString(separator = "")}
     }
 
     companion object {
-        private val FOR_SOURCE_GENERATION: Key<*> = Key.create<Any>(AutoGenerateSourcesListener::class.java.toString() + ".FOR_SOURCE_GENERATION")
+        private val FOR_SOURCE_GENERATION: Key<*> =
+            Key.create<Any>(AutoGenerateSourcesListener::class.java.toString() + ".FOR_SOURCE_GENERATION")
     }
 
 }
