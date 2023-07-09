@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>ru.curs.celesta.intellij</id>
     <name>CelestaSQL</name>
-    <vendor email="support@corchestra.ru" url="https://corchestra.ru/">CourseOrchestra</vendor>
+    <vendor email="ivan@galahad.ee" url="https://courseorchestra.github.io/celesta">CourseOrchestra</vendor>
 
     <description><![CDATA[
         <a href="https://github.com/courseorchestra/celesta">Celesta</a> is a tool for Java backend developers who want easier ways to deliver RDBMS-backed software.
