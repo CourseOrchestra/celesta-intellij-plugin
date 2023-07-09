@@ -5,7 +5,6 @@ import com.intellij.lang.java.JavaLanguage
 import com.intellij.openapi.editor.Editor
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
-import junit.framework.TestCase
 import ru.curs.celesta.intellij.CelestaBundle
 import ru.curs.celesta.intellij.assertGutterTarget
 

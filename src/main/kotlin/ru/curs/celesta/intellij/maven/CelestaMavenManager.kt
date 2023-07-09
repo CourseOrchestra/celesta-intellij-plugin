@@ -182,8 +182,8 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         runWriteAction {
             module2mavenProject.clear()
 
-            val module2ContentRoots = ModuleManager.getInstance(project).modules.associate {
-                it to ModuleRootManager.getInstance(it).contentRoots
+            val module2ContentRoots = ModuleManager.getInstance(project).modules.associateWith {
+                ModuleRootManager.getInstance(it).contentRoots
             }
 
             for (mavenProject in mavenProjectsManager.projects) {
