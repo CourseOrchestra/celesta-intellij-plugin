@@ -12,7 +12,7 @@ import com.intellij.sql.SqlFileType
 import com.intellij.sql.psi.SqlFile
 import com.intellij.util.Processor
 
-class CelestaScoreSearch(private val project: Project) {
+class CelestaScoreSearch(project: Project) {
     private val psiManager: PsiManager = PsiManager.getInstance(project)
 
     fun processScores(module: Module, processor: Processor<CelestaGrain>) {

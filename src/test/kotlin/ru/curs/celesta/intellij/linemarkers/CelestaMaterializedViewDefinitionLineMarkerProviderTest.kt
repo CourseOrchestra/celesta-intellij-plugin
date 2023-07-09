@@ -2,7 +2,6 @@ package ru.curs.celesta.intellij.linemarkers
 
 import com.intellij.codeInsight.daemon.LineMarkerProvider
 import com.intellij.sql.psi.SqlLanguage
-import junit.framework.TestCase
 import ru.curs.celesta.intellij.CelestaBundle
 import ru.curs.celesta.intellij.assertGutterTarget
 import ru.curs.celesta.intellij.getElementUnderCaret

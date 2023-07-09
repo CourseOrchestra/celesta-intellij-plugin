@@ -69,7 +69,7 @@ abstract class AbstractLineMarkerTest : LightJavaCodeInsightFixtureTestCase() {
 
 private val libPath = PathUtil.toSystemIndependentName(File("testdata", "libs").absolutePath)!!
 
-private class CelestaProjectDescriptor() : DefaultLightProjectDescriptor() {
+private class CelestaProjectDescriptor : DefaultLightProjectDescriptor() {
 
     override fun configureModule(module: Module, model: ModifiableRootModel, contentEntry: ContentEntry) {
         listOf("celesta-core-7.2.4.jar", "celesta-sql-7.2.4.jar", "celesta-system-services-7.2.4.jar").forEach {

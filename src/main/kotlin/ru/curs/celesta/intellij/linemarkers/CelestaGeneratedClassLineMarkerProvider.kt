@@ -7,12 +7,9 @@ import com.intellij.openapi.editor.markup.GutterIconRenderer
 import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.Project
 import com.intellij.psi.*
-import com.intellij.psi.codeStyle.NameUtil
-import com.intellij.psi.util.PsiTreeUtil
 import com.intellij.psi.util.parentOfType
 import com.intellij.util.CommonProcessors
 import com.intellij.util.PsiNavigateUtil
-import com.intellij.util.text.NameUtilCore
 import icons.DatabaseIcons
 import ru.curs.celesta.intellij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.intellij.CelestaBundle
