@@ -6,7 +6,7 @@ import org.jetbrains.intellij.tasks.RunPluginVerifierTask
 plugins {
     java
     id("org.jetbrains.intellij") version "1.15.0"
-    id("org.jetbrains.kotlin.jvm") version "1.9.10"
+    id("org.jetbrains.kotlin.jvm") version "1.9.20"
 }
 
 group = "ru.curs.celesta.intellij"
