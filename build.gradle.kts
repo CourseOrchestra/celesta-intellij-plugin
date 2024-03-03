@@ -10,7 +10,7 @@ plugins {
 }
 
 group = "ru.curs.celesta.intellij"
-version = "1.06"
+version = "1.07"
 
 repositories {
     mavenCentral()
@@ -46,14 +46,14 @@ idea {
 
 
 intellij {
-    version.set("2023.1.1")
+    version.set("2023.2.1")
     type.set("IU")
     plugins.set(listOf("DatabaseTools", "JPA", "java", "maven", "maven-model"))
 }
 
 tasks {
     runPluginVerifier {
-        ideVersions.set(listOf("IU-2023.1.1"))
+        ideVersions.set(listOf("IU-2023.3.4"))
         failureLevel.set(
             setOf(
                 RunPluginVerifierTask.FailureLevel.INVALID_PLUGIN,
@@ -73,7 +73,7 @@ tasks {
 
     patchPluginXml {
         changeNotes.set(File("changelog.html").readText(Charsets.UTF_8))
-        sinceBuild.set("231")
-        untilBuild.set("231.*")
+        sinceBuild.set("232")
+        untilBuild.set("233.*")
     }
 }
