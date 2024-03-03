@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>ru.curs.celesta.intellij</id>
+    <id>ru.curs.celesta.ij</id>
     <name>CelestaSQL</name>
     <vendor email="ivan@galahad.ee" url="https://courseorchestra.github.io/celesta">CourseOrchestra</vendor>
 
@@ -15,37 +15,37 @@
     <depends>org.jetbrains.idea.maven</depends>
 
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="ru.curs.celesta.intellij.maven.CelestaMavenManager$StartupActivity"/>
+        <postStartupActivity implementation="ru.curs.celesta.ij.maven.CelestaMavenManager$StartupActivity"/>
 
-        <projectService serviceImplementation="ru.curs.celesta.intellij.maven.CelestaMavenManager"/>
+        <projectService serviceImplementation="ru.curs.celesta.ij.maven.CelestaMavenManager"/>
 
-        <projectService serviceImplementation="ru.curs.celesta.intellij.scores.CelestaScoreSearch"/>
+        <projectService serviceImplementation="ru.curs.celesta.ij.scores.CelestaScoreSearch"/>
 
-        <projectService serviceImplementation="ru.curs.celesta.intellij.generated.GeneratedClassesSearch"/>
+        <projectService serviceImplementation="ru.curs.celesta.ij.generated.GeneratedClassesSearch"/>
 
-        <projectService serviceImplementation="ru.curs.celesta.intellij.autogenerate.LibraryModificationTracker"/>
-
-        <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedTableLineMarkerProvider" language="JAVA"/>
-        <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedMaterializedViewLineMarkerProvider" language="JAVA"/>
-        <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedSequenceLineMarkerProvider" language="JAVA"/>
-        <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedViewLineMarkerProvider" language="JAVA"/>
-        <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.GeneratedFunctionLineMarkerProvider" language="JAVA"/>
+        <projectService serviceImplementation="ru.curs.celesta.ij.autogenerate.LibraryModificationTracker"/>
 
         <codeInsight.lineMarkerProvider
-            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaTableDefinitionLineMarkerProvider" language="SQL"/>
+                implementationClass="ru.curs.celesta.ij.linemarkers.GeneratedTableLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
-            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaSequenceDefinitionLineMarkerProvider" language="SQL"/>
+                implementationClass="ru.curs.celesta.ij.linemarkers.GeneratedMaterializedViewLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
-            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaMaterializedViewDefinitionLineMarkerProvider" language="SQL"/>
+                implementationClass="ru.curs.celesta.ij.linemarkers.GeneratedSequenceLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
-            implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaViewDefinitionLineMarkerProvider" language="SQL"/>
+                implementationClass="ru.curs.celesta.ij.linemarkers.GeneratedViewLineMarkerProvider" language="JAVA"/>
         <codeInsight.lineMarkerProvider
-                implementationClass="ru.curs.celesta.intellij.linemarkers.CelestaFunctionDefinitionLineMarkerProvider" language="SQL"/>
+                implementationClass="ru.curs.celesta.ij.linemarkers.GeneratedFunctionLineMarkerProvider" language="JAVA"/>
+
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.ij.linemarkers.CelestaTableDefinitionLineMarkerProvider" language="SQL"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.ij.linemarkers.CelestaSequenceDefinitionLineMarkerProvider" language="SQL"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.ij.linemarkers.CelestaMaterializedViewDefinitionLineMarkerProvider" language="SQL"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.ij.linemarkers.CelestaViewDefinitionLineMarkerProvider" language="SQL"/>
+        <codeInsight.lineMarkerProvider
+                implementationClass="ru.curs.celesta.ij.linemarkers.CelestaFunctionDefinitionLineMarkerProvider" language="SQL"/>
 
         <notificationGroup
                 id="celesta.balloon"
@@ -56,9 +56,9 @@
     </extensions>
 
     <projectListeners>
-        <listener class="ru.curs.celesta.intellij.autogenerate.AutoGenerateSourcesListener"
+        <listener class="ru.curs.celesta.ij.autogenerate.AutoGenerateSourcesListener"
                   topic="com.intellij.openapi.fileEditor.FileEditorManagerListener"/>
-        <listener class="ru.curs.celesta.intellij.autogenerate.AutoGenerateSourcesListener"
+        <listener class="ru.curs.celesta.ij.autogenerate.AutoGenerateSourcesListener"
                   topic="com.intellij.openapi.vfs.newvfs.BulkFileListener"/>
     </projectListeners>
 </idea-plugin>
