@@ -23,7 +23,7 @@ java {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.10")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.0.20")
 }
 
 idea {
