@@ -1,5 +1,5 @@
 <idea-plugin>
-    <id>ru.curs.celesta.ij</id>
+    <id>ru.curs.celesta.intellij</id>
     <name>CelestaSQL</name>
     <vendor email="ivan@galahad.ee" url="https://courseorchestra.github.io/celesta">CourseOrchestra</vendor>
 
