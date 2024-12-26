@@ -2,6 +2,7 @@ import org.jetbrains.gradle.ext.Gradle
 import org.jetbrains.gradle.ext.runConfigurations
 import org.jetbrains.gradle.ext.settings
 import org.jetbrains.intellij.tasks.RunPluginVerifierTask
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     java
@@ -10,7 +11,7 @@ plugins {
 }
 
 group = "ru.curs.celesta.intellij"
-version = "1.07"
+version = "1.08"
 
 repositories {
     mavenCentral()
@@ -44,9 +45,8 @@ idea {
     }
 }
 
-
 intellij {
-    version.set("2023.2.1")
+    version.set("2023.3.7")
     type.set("IU")
     plugins.set(listOf("DatabaseTools", "JPA", "java", "maven", "maven-model"))
 }
@@ -64,16 +64,20 @@ tasks {
 
 
     compileKotlin {
-        kotlinOptions.jvmTarget = "17"
+        compilerOptions{
+            jvmTarget = JvmTarget.JVM_17
+        }
     }
 
     compileTestKotlin {
-        kotlinOptions.jvmTarget = "17"
+        compilerOptions{
+            jvmTarget = JvmTarget.JVM_17
+        }
     }
 
     patchPluginXml {
         changeNotes.set(File("changelog.html").readText(Charsets.UTF_8))
-        sinceBuild.set("232")
-        untilBuild.set("233.*")
+        sinceBuild.set("233")
+        untilBuild.set("241.*")
     }
 }

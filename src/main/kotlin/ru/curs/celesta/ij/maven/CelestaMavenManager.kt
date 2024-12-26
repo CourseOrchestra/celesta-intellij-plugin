@@ -1,6 +1,5 @@
 package ru.curs.celesta.ij.maven
 
-import com.intellij.ProjectTopics
 import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.Disposable
 import com.intellij.openapi.application.ApplicationManager
@@ -244,7 +243,7 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
             celestaMavenManager.updateProjects()
 
             project.messageBus.connect(celestaMavenManager)
-                .subscribe(ProjectTopics.MODULES, celestaMavenManager.modulesListener)
+                .subscribe(ModuleListener.TOPIC, celestaMavenManager.modulesListener)
         }
     }
 }
