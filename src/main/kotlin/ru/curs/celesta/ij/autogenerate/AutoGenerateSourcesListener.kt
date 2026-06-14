@@ -15,6 +15,8 @@ import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
+import com.intellij.openapi.progress.runBlockingMaybeCancellable
+import com.intellij.platform.util.progress.RawProgressReporter
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.projectRoots.JavaSdk
 import com.intellij.openapi.projectRoots.JavaSdkVersion
@@ -32,18 +34,17 @@ import com.intellij.psi.PsiManager
 import com.intellij.sql.SqlFileType
 import com.intellij.sql.psi.SqlFile
 import org.jetbrains.annotations.Nullable
-import org.jetbrains.idea.maven.buildtool.MavenSyncConsole
-import org.jetbrains.idea.maven.execution.MavenExecutionOptions
+import org.jetbrains.idea.maven.buildtool.MavenEventHandler
 import org.jetbrains.idea.maven.execution.MavenRunConfigurationType
 import org.jetbrains.idea.maven.execution.MavenRunnerParameters
 import org.jetbrains.idea.maven.model.MavenExplicitProfiles
-import org.jetbrains.idea.maven.project.MavenConsole
 import org.jetbrains.idea.maven.project.MavenProject
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.idea.maven.project.MavenWorkspaceSettingsComponent
+import org.jetbrains.idea.maven.server.MavenArtifactEvent
 import org.jetbrains.idea.maven.server.MavenGoalExecutionRequest
 import org.jetbrains.idea.maven.server.MavenGoalExecutionResult
-import org.jetbrains.idea.maven.utils.MavenProgressIndicator
+import org.jetbrains.idea.maven.server.MavenServerConsoleEvent
 import ru.curs.celesta.ij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.ij.CelestaConstants
 import ru.curs.celesta.ij.cachedValue
@@ -207,18 +208,18 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
 
         val logsCollector: MutableList<String> = mutableListOf()
 
-        val mavenProgressIndicator = MavenProgressIndicator(project) { MavenSyncConsole(project) }
-
-        val console = object : MavenConsole(MavenExecutionOptions.LoggingLevel.INFO, true) {
-            override fun canPause(): Boolean = false
-
-            override fun isOutputPaused(): Boolean = false
-
-            override fun setOutputPaused(outputPaused: Boolean) {}
-
-            override fun doPrint(text: String, type: OutputType?) {
-                logsCollector.add(text)
+        val progressReporter = object : RawProgressReporter {
+            override fun text(text: String?) {
+                if (text != null) indicator.text = text
             }
+        }
+
+        val eventHandler = object : MavenEventHandler {
+            override fun handleConsoleEvents(consoleEvents: List<MavenServerConsoleEvent>) {
+                consoleEvents.forEach { logsCollector.add(it.message) }
+            }
+
+            override fun handleDownloadEvents(downloadEvents: List<MavenArtifactEvent>) {}
         }
 
         val profiles = mavenProject.activatedProfilesIds
@@ -234,20 +235,22 @@ private class GenerateSourcesTask(project: Project, val mavenProject: MavenProje
 
         val result = mutableListOf<MavenGoalExecutionResult>()
 
-        for (goal in listOf(
-            "celesta:gen-cursors",
-            "celesta:gen-score-resources",
-            "celesta:gen-test-cursors",
-            "celesta:gen-test-score-resources"
-        ))
-            result.addAll(
-                embedder.executeGoal(
-                    Collections.singletonList(request),
-                    goal,
-                    mavenProgressIndicator,
-                    console
+        runBlockingMaybeCancellable {
+            for (goal in listOf(
+                "celesta:gen-cursors",
+                "celesta:gen-score-resources",
+                "celesta:gen-test-cursors",
+                "celesta:gen-test-score-resources"
+            ))
+                result.addAll(
+                    embedder.executeGoal(
+                        listOf(request),
+                        goal,
+                        progressReporter,
+                        eventHandler
+                    )
                 )
-            )
+        }
         val problems = result.flatMap { it.problems }
 
         if (problems.isEmpty()) {

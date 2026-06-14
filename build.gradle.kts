@@ -1,83 +1,85 @@
-import org.jetbrains.gradle.ext.Gradle
-import org.jetbrains.gradle.ext.runConfigurations
-import org.jetbrains.gradle.ext.settings
-import org.jetbrains.intellij.tasks.RunPluginVerifierTask
+import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     java
-    id("org.jetbrains.intellij") version "1.17.4"
-    id("org.jetbrains.kotlin.jvm") version "2.1.0"
+    id("org.jetbrains.intellij.platform") version "2.16.0"
+    id("org.jetbrains.kotlin.jvm") version "2.3.0"
 }
 
 group = "ru.curs.celesta.intellij"
-version = "1.08"
+version = "1.09"
 
 repositories {
     mavenCentral()
+    intellijPlatform {
+        defaultRepositories()
+    }
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
 }
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.1.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.3.0")
+
+    intellijPlatform {
+        create("IU", "2026.1.3")
+
+        bundledPlugins(
+            "com.intellij.database",
+            "com.intellij.java",
+            "org.jetbrains.idea.maven"
+        )
+
+        testFramework(TestFrameworkType.Platform)
+        testFramework(TestFrameworkType.Plugin.Java)
+    }
+
+    testImplementation("junit:junit:4.13.2")
 }
 
-idea {
-    project {
-        settings {
-            runConfigurations {
+intellijPlatform {
+    pluginConfiguration {
+        version = project.version.toString()
+        changeNotes = file("changelog.html").readText(Charsets.UTF_8)
 
-                create("Run Plugin", Gradle::class) {
-                    projectPath = projectDir.absolutePath
-                    taskNames = setOf(":runIde")
-                }
-                create("Build Plugin", Gradle::class) {
-                    projectPath = projectDir.absolutePath
-                    taskNames = setOf(":buildPlugin")
-                }
-            }
+        ideaVersion {
+            sinceBuild = "261"
+            untilBuild = provider { null }
+        }
+    }
+
+    pluginVerification {
+        // The plugin ID "ru.curs.celesta.intellij" is already published; renaming it would
+        // break updates for existing users, so mute the marketplace naming-convention check.
+        freeArgs = listOf("-mute", "TemplateWordInPluginId")
+
+        ides {
+            recommended()
         }
     }
 }
 
-intellij {
-    version.set("2023.3.7")
-    type.set("IU")
-    plugins.set(listOf("DatabaseTools", "JPA", "java", "maven", "maven-model"))
-}
-
 tasks {
-    runPluginVerifier {
-        ideVersions.set(listOf("IU-2023.3.4"))
-        failureLevel.set(
-            setOf(
-                RunPluginVerifierTask.FailureLevel.INVALID_PLUGIN,
-                RunPluginVerifierTask.FailureLevel.COMPATIBILITY_PROBLEMS
-            )
-        )
-    }
-
-
     compileKotlin {
-        compilerOptions{
-            jvmTarget = JvmTarget.JVM_17
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_21
+            // Rely on the platform interfaces' real JVM default methods instead of emitting
+            // compatibility delegates. This avoids generating a delegate for the deprecated
+            // MavenProjectsTree.Listener.projectResolved(Pair, NativeMavenProjectHolder),
+            // which is removed in newer IDE builds (2026.2+).
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
     }
 
     compileTestKotlin {
-        compilerOptions{
-            jvmTarget = JvmTarget.JVM_17
+        compilerOptions {
+            jvmTarget = JvmTarget.JVM_21
+            freeCompilerArgs.add("-Xjvm-default=all")
         }
-    }
-
-    patchPluginXml {
-        changeNotes.set(File("changelog.html").readText(Charsets.UTF_8))
-        sinceBuild.set("233")
-        untilBuild.set("241.*")
     }
 }

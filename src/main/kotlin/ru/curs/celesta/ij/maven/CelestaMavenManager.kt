@@ -24,7 +24,6 @@ import org.jetbrains.idea.maven.project.MavenProject
 import org.jetbrains.idea.maven.project.MavenProjectChanges
 import org.jetbrains.idea.maven.project.MavenProjectsManager
 import org.jetbrains.idea.maven.project.MavenProjectsTree
-import org.jetbrains.idea.maven.server.NativeMavenProjectHolder
 import ru.curs.celesta.ij.CelestaConstants
 import java.io.File
 
@@ -58,15 +57,14 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
 
     private val mavenListener = object : MavenProjectsTree.Listener {
         override fun projectResolved(
-            projectWithChanges: Pair<MavenProject, MavenProjectChanges>,
-            nativeMavenProject: NativeMavenProjectHolder?
+            projectWithChanges: Pair<MavenProject, MavenProjectChanges>
         ) {
             scheduleUpdate()
         }
 
         override fun projectsUpdated(
-            updated: MutableList<Pair<MavenProject, MavenProjectChanges>>,
-            deleted: MutableList<MavenProject>
+            updated: List<Pair<MavenProject, MavenProjectChanges>>,
+            deleted: List<MavenProject>
         ) {
             scheduleUpdate()
         }
@@ -83,8 +81,8 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         }
 
         override fun projectsIgnoredStateChanged(
-            ignored: MutableList<MavenProject>,
-            unignored: MutableList<MavenProject>,
+            ignored: List<MavenProject>,
+            unignored: List<MavenProject>,
             fromImport: Boolean
         ) {
             scheduleUpdate()
