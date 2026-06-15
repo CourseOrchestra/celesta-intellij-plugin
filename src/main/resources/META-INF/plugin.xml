@@ -51,6 +51,10 @@
                 language="SQL"
                 implementationClass="ru.curs.celesta.ij.annotator.CelestaSqlParseAnnotator"/>
 
+        <platform.backend.documentation.psiTargetProvider
+                implementation="ru.curs.celesta.ij.navigation.CelestaCursorDocumentationProvider"
+                order="first"/>
+
         <notificationGroup
                 id="celesta.balloon"
                 displayType="BALLOON"
