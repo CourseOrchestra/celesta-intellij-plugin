@@ -1,7 +1,5 @@
 = Celesta IntelliJ Plugin
 
-image::https://ci.corchestra.ru/buildStatus/icon?job=celesta-intellij-plugin/master[link=https://ci.corchestra.ru/job/celesta-intellij-plugin/job/master/]
-
 Offers support for https://github.com/courseorchestra/celesta[Celesta] 
 
 image::demo.gif[]
