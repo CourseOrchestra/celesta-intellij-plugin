@@ -1,0 +1,22 @@
+# Detekt configuration for the CelestaSQL plugin.
+#
+# buildUponDefaultConfig = true, so any rule not mentioned here keeps detekt's default.
+# Only deviations from the defaults are recorded below.
+
+complexity:
+  TooManyFunctions:
+    # CelestaMavenManager is a cohesive service with many small accessors.
+    allowedFunctionsPerClass: 20
+
+empty-blocks:
+  EmptyFunctionBlock:
+    # Empty Disposable.dispose() overrides are legitimate.
+    ignoreOverridden: true
+
+style:
+  MaxLineLength:
+    maxLineLength: 140
+  ReturnCount:
+    # Guard-clause early returns are idiomatic in IntelliJ PSI code (lots of `... ?: return`).
+    max: 4
+    excludeGuardClauses: true

@@ -19,6 +19,9 @@ jobs:
           java-version: '21'
           cache: 'gradle'
 
+      - name: Detekt
+        run: ./gradlew detekt
+
       - name: Test
         run: ./gradlew test
 

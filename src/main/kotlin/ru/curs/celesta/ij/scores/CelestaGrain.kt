@@ -1,9 +1,21 @@
 package ru.curs.celesta.ij.scores
 
 import com.intellij.openapi.vfs.VfsUtil
-import com.intellij.psi.*
-import com.intellij.psi.util.*
-import com.intellij.sql.psi.*
+import com.intellij.psi.PsiComment
+import com.intellij.psi.PsiElement
+import com.intellij.psi.PsiRecursiveElementVisitor
+import com.intellij.psi.PsiWhiteSpace
+import com.intellij.psi.SmartPointerManager
+import com.intellij.psi.SmartPsiElementPointer
+import com.intellij.psi.util.CachedValueProvider
+import com.intellij.psi.util.CachedValuesManager
+import com.intellij.psi.util.PsiTreeUtil
+import com.intellij.psi.util.elementType
+import com.intellij.psi.util.nextLeaf
+import com.intellij.sql.psi.SqlCreateStatement
+import com.intellij.sql.psi.SqlElementTypes
+import com.intellij.sql.psi.SqlFile
+import com.intellij.sql.psi.SqlTokens
 import com.intellij.sql.psi.impl.SqlTokenElement
 import ru.curs.celesta.ij.cachedValue
 import ru.curs.celesta.ij.maven.CelestaMavenManager
@@ -14,7 +26,7 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
 
     val sqlFile: SqlFile
         get() = pointer.element
-            ?: throw IllegalStateException()
+            ?: throw IllegalStateException("SQL file PSI pointer is no longer valid")
 
     val packageName: String
         get() = getPackageName(sqlFile)
@@ -41,6 +53,9 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
         get() = isTestGrain(sqlFile)
 
     companion object {
+        // In "CREATE GRAIN <name>" / "CREATE SCHEMA <name>", the grain name is the 3rd meaningful leaf.
+        private const val GRAIN_NAME_LEAF_INDEX = 2
+
         operator fun invoke(sqlFile: SqlFile): CelestaGrain = CachedValuesManager.getCachedValue(sqlFile) {
             return@getCachedValue CachedValueProvider.Result.create(CelestaGrain(sqlFile), sqlFile)
         }
@@ -50,7 +65,7 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
 
             accept(object : PsiRecursiveElementVisitor() {
                 override fun visitElement(element: PsiElement) {
-                    if(leafElements.size >= 3)
+                    if (leafElements.size > GRAIN_NAME_LEAF_INDEX)
                         return
 
                     if(element !is PsiWhiteSpace && element !is PsiComment && element.children.isEmpty()) {
@@ -60,7 +75,7 @@ class CelestaGrain private constructor(sqlFile: SqlFile) {
                 }
             })
 
-            return@cachedValue leafElements.getOrNull(2)?.takeIf {
+            return@cachedValue leafElements.getOrNull(GRAIN_NAME_LEAF_INDEX)?.takeIf {
                 it.prev()?.text.equals("GRAIN", true) || it.prev()?.text.equals("SCHEMA", true)
             }?.text
         }

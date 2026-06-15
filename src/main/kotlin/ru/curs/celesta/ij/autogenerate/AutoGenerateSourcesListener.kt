@@ -156,7 +156,8 @@ private class GenerateSourcesTask(
                 .createNotification(e.message ?: "Error parsing Celesta score", NotificationType.WARNING)
                 .notify(project)
             return
-        } catch (e: Exception) {
+            // A background task must not let any generation failure (e.g. CelestaException) escape.
+        } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
             log.warn("Celesta cursor generation failed", e)
             CELESTA_NOTIFICATIONS
                 .createNotification("Error generating Celesta cursors: ${e.message}", NotificationType.ERROR)

@@ -51,8 +51,10 @@ class CelestaSqlParseAnnotator : ExternalAnnotator<CelestaSqlParseAnnotator.Info
             ReadAction.computeBlocking<Boolean, RuntimeException> {
                 !DumbService.isDumb(project) && CelestaConstants.isCelestaProject(project)
             }
-        } catch (e: IndexNotReadyException) {
-            return null // indexes not ready yet; the highlighting pass will re-run when they are
+            // Intentionally swallowed: when indexes aren't ready we skip this pass; the daemon
+            // re-runs the annotator once indexing finishes.
+        } catch (@Suppress("SwallowedException") e: IndexNotReadyException) {
+            return null
         }
         if (!isCelestaProject) return null
 
