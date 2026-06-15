@@ -12,7 +12,7 @@ class CelestaGeneratedObject private constructor(cursorClass: PsiClass) {
 
     val objectClass: PsiClass
         get() = pointer.element
-            ?: throw IllegalStateException()
+            ?: throw IllegalStateException("Cursor class PSI pointer is no longer valid")
 
     val grainName: String?
         get() = getGrainName(objectClass)

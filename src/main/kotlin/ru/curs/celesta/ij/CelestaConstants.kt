@@ -27,13 +27,21 @@ object CelestaConstants {
     const val OBJECT_NAME_FIELD = "OBJECT_NAME"
 
     @JvmStatic
-    fun isCelestaProject(project: Project): Boolean = !project.isDisposed && project.isInitialized && CachedValuesManager.getManager(project).getCachedValue(project) {
+    fun isCelestaProject(project: Project): Boolean {
+        if (project.isDisposed || !project.isInitialized) return false
+
+        return CachedValuesManager.getManager(project).getCachedValue(project) {
+            computeIsCelestaProject(project)
+        }
+    }
+
+    private fun computeIsCelestaProject(project: Project): CachedValueProvider.Result<Boolean> {
         val psiFacade = JavaPsiFacade.getInstance(project)
 
         val hasCursorClass = DumbService.getInstance(project).computeWithAlternativeResolveEnabled<Boolean, Throwable> {
             psiFacade.findClass(CURSOR_FQN, GlobalSearchScope.allScope(project)) != null
         }
 
-        return@getCachedValue CachedValueProvider.Result.create(hasCursorClass, LibraryModificationTracker.getInstance(project))
+        return CachedValueProvider.Result.create(hasCursorClass, LibraryModificationTracker.getInstance(project))
     }
 }

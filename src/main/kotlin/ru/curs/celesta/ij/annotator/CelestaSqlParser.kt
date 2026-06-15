@@ -43,13 +43,15 @@ object CelestaSqlParser {
 
         val grainPart = try {
             ByteArrayInputStream(bytes).use { CelestaParser(it, "utf-8").extractGrainInfo(score, resource) }
-        } catch (t: Throwable) {
+            // TokenMgrError is a package-private Error, so Throwable is the only type that catches it.
+        } catch (@Suppress("TooGenericExceptionCaught") t: Throwable) {
             return toParseError(t)
         }
 
         try {
             ByteArrayInputStream(bytes).use { CelestaParser(it, "utf-8").parseGrainPart(grainPart) }
-        } catch (t: Throwable) {
+            // TokenMgrError is a package-private Error, so Throwable is the only type that catches it.
+        } catch (@Suppress("TooGenericExceptionCaught") t: Throwable) {
             return toParseError(t)
         }
 
@@ -61,11 +63,12 @@ object CelestaSqlParser {
         val isSyntaxError = t is ParseException || t.javaClass.name == TOKEN_MGR_ERROR
         if (!isSyntaxError) return null
 
-        val message = t.message ?: return null
-        val match = LINE_COL.find(message) ?: return null // no location -> semantic error, ignore
-        val line = match.groupValues[1].toIntOrNull() ?: return null
-        val column = match.groupValues[2].toIntOrNull() ?: return null
+        // No "at line L, column C" location means a semantic error (e.g. an unresolved reference),
+        // which a single isolated file can't resolve; ignore it to avoid false positives.
+        val match = t.message?.let { LINE_COL.find(it) } ?: return null
+        val line = match.groupValues[1].toIntOrNull()
+        val column = match.groupValues[2].toIntOrNull()
 
-        return ParseError(line, column, message)
+        return if (line != null && column != null) ParseError(line, column, t.message.orEmpty()) else null
     }
 }
