@@ -4,7 +4,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     java
     id("org.jetbrains.intellij.platform") version "2.16.0"
-    id("org.jetbrains.kotlin.jvm") version "2.3.0"
+    id("org.jetbrains.kotlin.jvm") version "2.4.0"
 }
 
 group = "ru.curs.celesta.intellij"
@@ -24,7 +24,7 @@ java {
 
 dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlin:kotlin-reflect:2.3.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:2.4.0")
 
     // CelestaSQL parser used to validate score files in the editor. Bundled into the plugin's lib/.
     // slf4j-api is already provided by the IntelliJ Platform, so exclude it to avoid a duplicate copy.
