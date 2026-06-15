@@ -9,6 +9,7 @@ import com.intellij.openapi.application.runWriteAction
 import com.intellij.openapi.components.service
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.module.ModuleManager
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.project.ModuleListener
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.roots.ModuleRootManager
@@ -99,48 +100,76 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         }
     }
 
-    fun getCelestaSourcesRoots(mavenProject: MavenProject): List<VirtualFile> {
-        return getSourcesRoot(mavenProject, "scores", CelestaConstants.DEFAULT_SOURCE_PATH)
-    }
+    fun getCelestaSourcesRoots(mavenProject: MavenProject): List<VirtualFile> =
+        getModule(mavenProject)?.let { getMainScoreRoots(it) } ?: emptyList()
 
-    fun getCelestaTestSourcesRoots(mavenProject: MavenProject): List<VirtualFile> {
-        return getSourcesRoot(mavenProject, "testScores", CelestaConstants.DEFAULT_TEST_SOURCE_PATH)
-    }
+    fun getCelestaTestSourcesRoots(mavenProject: MavenProject): List<VirtualFile> =
+        getModule(mavenProject)?.let { getTestScoreRoots(it) } ?: emptyList()
 
-    private fun getSourcesRoot(
-        mavenProject: MavenProject,
+    /**
+     * Celesta score source roots of [module]. When the module has a Maven project, the
+     * celesta-maven-plugin `<scores>` configuration is honored; otherwise (e.g. Gradle projects) only
+     * the standard [CelestaConstants.DEFAULT_SOURCE_PATH] layout is assumed.
+     */
+    fun getMainScoreRoots(module: Module): List<VirtualFile> =
+        scoreRootsForModule(module, "scores", CelestaConstants.DEFAULT_SOURCE_PATH)
+
+    fun getTestScoreRoots(module: Module): List<VirtualFile> =
+        scoreRootsForModule(module, "testScores", CelestaConstants.DEFAULT_TEST_SOURCE_PATH)
+
+    private fun scoreRootsForModule(
+        module: Module,
         configElementName: String,
         defaultPath: String
     ): List<VirtualFile> {
-        val module = getModule(mavenProject) ?: return emptyList()
-
-        val configurationElement =
-            mavenProject.plugins.firstOrNull { it.artifactId == "celesta-maven-plugin" && it.groupId == "ru.curs" }?.configurationElement
-
-        val relativeScorePaths = (configurationElement?.let { configuration ->
-            configuration.getChild(configElementName)
-                ?.getChildren("score")
-                ?.mapNotNull {
-                    it.getChild("path")?.text?.replace('\\', '/')
-                }?.map {
-                    it.removePrefix(mavenProject.path.removeSuffix("pom.xml"))
-                }
-        } ?: listOf()) + listOf(defaultPath)
+        val configuredPaths = module2mavenProject[module]?.let { configuredScorePaths(it, configElementName) } ?: emptyList()
+        val relativePaths = configuredPaths + defaultPath
 
         return ModuleRootManager.getInstance(module).contentRoots.flatMap { root ->
-            relativeScorePaths.mapNotNull {
+            relativePaths.mapNotNull {
                 VfsUtil.findRelativeFile(root, *it.split("/").toTypedArray())
             }
         }
     }
 
+    private fun configuredScorePaths(mavenProject: MavenProject, configElementName: String): List<String> {
+        val configurationElement = celestaPluginConfig(mavenProject) ?: return emptyList()
+        return configurationElement.getChild(configElementName)
+            ?.getChildren("score")
+            ?.mapNotNull { it.getChild("path")?.text?.replace('\\', '/') }
+            ?.map { it.removePrefix(mavenProject.path.removeSuffix("pom.xml")) }
+            ?: emptyList()
+    }
+
+    private fun celestaPluginConfig(mavenProject: MavenProject) =
+        mavenProject.plugins
+            .firstOrNull { it.artifactId == "celesta-maven-plugin" && it.groupId == "ru.curs" }
+            ?.configurationElement
+
     /**
-     * Whether [file] lives under one of the celesta score source roots (main or test) of its
-     * containing maven project, i.e. it is a CelestaSQL grain file the plugin is responsible for.
+     * Build directory used for generated sources: the Maven project's `target` when known, otherwise
+     * `<contentRoot>/target` (the standard layout assumed for non-Maven projects).
+     */
+    fun buildDirectory(module: Module): File? {
+        module2mavenProject[module]?.let { return File(it.buildDirectory) }
+        val contentRoot = ModuleRootManager.getInstance(module).contentRoots.firstOrNull() ?: return null
+        return File(contentRoot.path, "target")
+    }
+
+    /** The celesta-maven-plugin `snakeToCamel` option (default `true`, matching the Maven plugin). */
+    fun isSnakeToCamel(module: Module): Boolean {
+        val mavenProject = module2mavenProject[module] ?: return true
+        return celestaPluginConfig(mavenProject)?.getChild("snakeToCamel")?.text?.toBoolean() ?: true
+    }
+
+    /**
+     * Whether [file] lives under one of the celesta score source roots (main or test) of its module,
+     * i.e. it is a CelestaSQL grain file the plugin is responsible for. Works for Maven and non-Maven
+     * (e.g. Gradle) modules alike.
      */
     fun isCelestaScoreFile(file: VirtualFile): Boolean {
-        val mavenProject = guessProject(file) ?: return false
-        return (getCelestaSourcesRoots(mavenProject) + getCelestaTestSourcesRoots(mavenProject))
+        val module = ModuleUtilCore.findModuleForFile(file, project) ?: return false
+        return (getMainScoreRoots(module) + getTestScoreRoots(module))
             .any { VfsUtil.isAncestor(it, file, false) }
     }
 
