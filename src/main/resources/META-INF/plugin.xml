@@ -47,6 +47,10 @@
         <codeInsight.lineMarkerProvider
                 implementationClass="ru.curs.celesta.ij.linemarkers.CelestaFunctionDefinitionLineMarkerProvider" language="SQL"/>
 
+        <externalAnnotator
+                language="SQL"
+                implementationClass="ru.curs.celesta.ij.annotator.CelestaSqlParseAnnotator"/>
+
         <notificationGroup
                 id="celesta.balloon"
                 displayType="BALLOON"

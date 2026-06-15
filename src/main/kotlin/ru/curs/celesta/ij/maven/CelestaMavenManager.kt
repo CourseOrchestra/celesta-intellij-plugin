@@ -134,6 +134,16 @@ class CelestaMavenManager(private val project: Project) : @NotNull Disposable {
         }
     }
 
+    /**
+     * Whether [file] lives under one of the celesta score source roots (main or test) of its
+     * containing maven project, i.e. it is a CelestaSQL grain file the plugin is responsible for.
+     */
+    fun isCelestaScoreFile(file: VirtualFile): Boolean {
+        val mavenProject = guessProject(file) ?: return false
+        return (getCelestaSourcesRoots(mavenProject) + getCelestaTestSourcesRoots(mavenProject))
+            .any { VfsUtil.isAncestor(it, file, false) }
+    }
+
     fun getModule(mavenProject: MavenProject): Module? {
         return module2mavenProject
             .entries

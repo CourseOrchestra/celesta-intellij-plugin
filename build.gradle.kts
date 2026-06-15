@@ -26,6 +26,13 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlin:kotlin-reflect:2.3.0")
 
+    // CelestaSQL parser used to validate score files in the editor. Bundled into the plugin's lib/.
+    // slf4j-api is already provided by the IntelliJ Platform, so exclude it to avoid a duplicate copy.
+    implementation("ru.curs:celesta-core:8.2.0") {
+        exclude(group = "org.slf4j")          // already provided by the IntelliJ Platform
+        exclude(group = "com.h2database")     // runtime DB driver, not needed for score parsing
+    }
+
     intellijPlatform {
         create("IU", "2026.1.3")
 
