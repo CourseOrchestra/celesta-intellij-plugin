@@ -3,7 +3,11 @@ package ru.curs.celesta.ij.annotator
 import com.intellij.lang.annotation.AnnotationHolder
 import com.intellij.lang.annotation.ExternalAnnotator
 import com.intellij.lang.annotation.HighlightSeverity
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Editor
+import com.intellij.openapi.project.DumbService
+import com.intellij.openapi.project.IndexNotReadyException
+import com.intellij.openapi.project.Project
 import com.intellij.openapi.util.TextRange
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiFile
@@ -18,27 +22,40 @@ import ru.curs.celesta.ij.scores.CelestaGrain
  */
 class CelestaSqlParseAnnotator : ExternalAnnotator<CelestaSqlParseAnnotator.Info, ParseError>() {
 
-    data class Info(val text: String, val fileName: String)
+    data class Info(val project: Project, val text: String, val fileName: String)
 
     override fun collectInformation(file: PsiFile, editor: Editor, hasErrors: Boolean): Info? {
-        val project = file.project
-
-        // Cheapest checks first: cached project check, then PSI type, then the source-root / grain check.
-        if (!CelestaConstants.isCelestaProject(project)) return null
+        // Runs on the EDT. Only cheap, non-index work here: the PSI type check, the score-root check
+        // (module roots, not indexes), and the grain-header check (a PSI walk). The index-backed
+        // isCelestaProject check is deferred to doAnnotate, off the EDT, to avoid
+        // "Slow operations are prohibited on EDT".
         if (file !is SqlFile) return null
 
         val virtualFile = file.virtualFile ?: return null
 
-        val isScoreFile = CelestaMavenManager.getInstance(project).isCelestaScoreFile(virtualFile)
+        val isScoreFile = CelestaMavenManager.getInstance(file.project).isCelestaScoreFile(virtualFile)
                 || CelestaGrain(file).grainName != null
         if (!isScoreFile) return null
 
-        return Info(file.text, virtualFile.name)
+        return Info(file.project, file.text, virtualFile.name)
     }
 
     override fun doAnnotate(collectedInfo: Info?): ParseError? {
         val info = collectedInfo ?: return null
-        // Runs on a background thread without a read lock; operates only on the captured text.
+        val project = info.project
+        if (project.isDisposed) return null
+
+        // Runs on a background thread. isCelestaProject resolves a class through the indexes, so it
+        // must run here (off the EDT) inside a read action rather than in collectInformation.
+        val isCelestaProject = try {
+            ReadAction.computeBlocking<Boolean, RuntimeException> {
+                !DumbService.isDumb(project) && CelestaConstants.isCelestaProject(project)
+            }
+        } catch (e: IndexNotReadyException) {
+            return null // indexes not ready yet; the highlighting pass will re-run when they are
+        }
+        if (!isCelestaProject) return null
+
         return CelestaSqlParser.parse(info.text, info.fileName)
     }
 

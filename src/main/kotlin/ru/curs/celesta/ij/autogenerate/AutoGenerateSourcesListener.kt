@@ -6,7 +6,8 @@ import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.openapi.application.invokeLater
+import com.intellij.openapi.application.ModalityState
+import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
@@ -51,21 +52,18 @@ import ru.curs.celesta.ij.cachedValue
 import ru.curs.celesta.ij.castSafelyTo
 import ru.curs.celesta.ij.maven.CelestaMavenManager
 import ru.curs.celesta.ij.scores.CelestaGrain
+import com.intellij.util.concurrency.AppExecutorUtil
 import java.io.File
 import java.util.*
+import java.util.concurrent.Callable
 
 class AutoGenerateSourcesListener(private val project: Project) : FileEditorManagerListener, BulkFileListener {
     override fun after(events: MutableList<out VFileEvent>) {
-        if (ApplicationManager.getApplication().isUnitTestMode)
-            return
+        val suitableEvents = events.filter {
+            it !is VFilePropertyChangeEvent && it !is VFileDeleteEvent
+        }
 
-        invokeLater {
-            if (!CelestaConstants.isCelestaProject(project)) return@invokeLater
-
-            val suitableEvents = events.filter {
-                it !is VFilePropertyChangeEvent && it !is VFileDeleteEvent
-            }
-
+        runIfCelestaProject {
             for (event in suitableEvents) {
                 event.file?.let { processFile(it) }
             }
@@ -73,16 +71,29 @@ class AutoGenerateSourcesListener(private val project: Project) : FileEditorMana
     }
 
     override fun selectionChanged(event: FileEditorManagerEvent) {
+        val file = event.oldFile ?: return
+
+        runIfCelestaProject {
+            processFile(file)
+        }
+    }
+
+    /**
+     * Verifies off the EDT that this is a Celesta project, then runs [action] on the EDT.
+     * [CelestaConstants.isCelestaProject] resolves a class through the indexes, which must not happen
+     * on the EDT (it triggers "Slow operations are prohibited on EDT").
+     */
+    private fun runIfCelestaProject(action: () -> Unit) {
         if (ApplicationManager.getApplication().isUnitTestMode)
             return
 
-        invokeLater {
-            if (!CelestaConstants.isCelestaProject(project)) return@invokeLater
-
-            val file = event.oldFile ?: return@invokeLater
-
-            processFile(file)
-        }
+        ReadAction.nonBlocking(Callable { CelestaConstants.isCelestaProject(project) })
+            .inSmartMode(project)
+            .expireWhen { project.isDisposed }
+            .finishOnUiThread(ModalityState.nonModal()) { isCelestaProject ->
+                if (isCelestaProject) action()
+            }
+            .submit(AppExecutorUtil.getAppExecutorService())
     }
 
     private fun processFile(file: @Nullable VirtualFile) {
