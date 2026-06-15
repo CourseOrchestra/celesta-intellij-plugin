@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "ru.curs.celesta.intellij"
-version = "1.09"
+version = "1.10"
 
 repositories {
     mavenCentral()
