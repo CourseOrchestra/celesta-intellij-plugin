@@ -1,10 +1,7 @@
 package ru.curs.celesta.ij.autogenerate
 
 import com.intellij.ide.util.PropertiesComponent
-import com.intellij.notification.Notification
-import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
-import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.openapi.application.ReadAction
@@ -12,18 +9,13 @@ import com.intellij.openapi.diagnostic.logger
 import com.intellij.openapi.fileEditor.FileDocumentManager
 import com.intellij.openapi.fileEditor.FileEditorManagerEvent
 import com.intellij.openapi.fileEditor.FileEditorManagerListener
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.module.ModuleUtilCore
 import com.intellij.openapi.progress.EmptyProgressIndicator
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
-import com.intellij.openapi.progress.runBlockingMaybeCancellable
-import com.intellij.platform.util.progress.RawProgressReporter
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.projectRoots.JavaSdk
-import com.intellij.openapi.projectRoots.JavaSdkVersion
-import com.intellij.openapi.projectRoots.Sdk
-import com.intellij.openapi.roots.ProjectRootManager
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.vfs.VfsUtil
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
@@ -34,27 +26,14 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
 import com.intellij.sql.SqlFileType
 import com.intellij.sql.psi.SqlFile
-import org.jetbrains.annotations.Nullable
-import org.jetbrains.idea.maven.buildtool.MavenEventHandler
-import org.jetbrains.idea.maven.execution.MavenRunConfigurationType
-import org.jetbrains.idea.maven.execution.MavenRunnerParameters
-import org.jetbrains.idea.maven.model.MavenExplicitProfiles
-import org.jetbrains.idea.maven.project.MavenProject
-import org.jetbrains.idea.maven.project.MavenProjectsManager
-import org.jetbrains.idea.maven.project.MavenWorkspaceSettingsComponent
-import org.jetbrains.idea.maven.server.MavenArtifactEvent
-import org.jetbrains.idea.maven.server.MavenGoalExecutionRequest
-import org.jetbrains.idea.maven.server.MavenGoalExecutionResult
-import org.jetbrains.idea.maven.server.MavenServerConsoleEvent
+import com.intellij.util.concurrency.AppExecutorUtil
 import ru.curs.celesta.ij.CELESTA_NOTIFICATIONS
 import ru.curs.celesta.ij.CelestaConstants
 import ru.curs.celesta.ij.cachedValue
-import ru.curs.celesta.ij.castSafelyTo
 import ru.curs.celesta.ij.maven.CelestaMavenManager
 import ru.curs.celesta.ij.scores.CelestaGrain
-import com.intellij.util.concurrency.AppExecutorUtil
+import ru.curs.celesta.score.ParseException
 import java.io.File
-import java.util.*
 import java.util.concurrent.Callable
 
 class AutoGenerateSourcesListener(private val project: Project) : FileEditorManagerListener, BulkFileListener {
@@ -96,46 +75,47 @@ class AutoGenerateSourcesListener(private val project: Project) : FileEditorMana
             .submit(AppExecutorUtil.getAppExecutorService())
     }
 
-    private fun processFile(file: @Nullable VirtualFile) {
+    private fun processFile(file: VirtualFile) {
         if (file.fileType != SqlFileType.INSTANCE || !file.isValid)
             return
 
-        val celestaGrain =
-            PsiManager.getInstance(project).findFile(file)
-                ?.castSafelyTo<SqlFile>()?.let { CelestaGrain(it) }
-                ?: return
+        val psiFile = PsiManager.getInstance(project).findFile(file) as? SqlFile ?: return
 
-        if (celestaGrain.grainName != null) {
-            log.info("Unselect ${file.path}")
+        if (CelestaGrain(psiFile).grainName == null)
+            return
 
-            val psiFile = PsiManager.getInstance(project).findFile(file) ?: return
+        val module = ModuleUtilCore.findModuleForFile(file, project) ?: return
+        val celestaManager = CelestaMavenManager.getInstance(project)
 
-            val mavenProject = CelestaMavenManager.getInstance(project).guessProject(file) ?: return
+        val crc = psiFile.cachedValue { text.hashCode() }
+        val propertiesComponent = PropertiesComponent.getInstance(project)
+        val oldCrc = propertiesComponent.getInt(file.name + "_crc", -1)
 
-            val crc = psiFile.cachedValue {
-                text.hashCode()
-            }
+        log.info("${file.path} crc is $crc. Last crc is $oldCrc")
+        if (crc == oldCrc)
+            return
 
-            val propertiesComponent = PropertiesComponent.getInstance(project)
-            val oldCrc = propertiesComponent.getInt(file.name + "_crc", -1)
+        val buildDirectory = celestaManager.buildDirectory(module) ?: return
+        val mainScoreRoots = celestaManager.getMainScoreRoots(module).map { File(it.path) }
+        val testScoreRoots = celestaManager.getTestScoreRoots(module).map { File(it.path) }
 
-            log.info("${file.path} crc is $crc. Last crc is $oldCrc")
-            if (crc != oldCrc) {
-                val documentManager = PsiDocumentManager.getInstance(project)
-                documentManager.getDocument(psiFile)?.let {
-                    FileDocumentManager.getInstance().saveDocument(it)
-                }
-
-                propertiesComponent.setValue(file.name + "_crc", crc, -1)
-
-                log.info("Scheduling sources generation")
-
-                ProgressManager.getInstance().runProcessWithProgressAsynchronously(
-                    GenerateSourcesTask(project, mavenProject),
-                    EmptyProgressIndicator()
-                )
-            }
+        PsiDocumentManager.getInstance(project).getDocument(psiFile)?.let {
+            FileDocumentManager.getInstance().saveDocument(it)
         }
+        propertiesComponent.setValue(file.name + "_crc", crc, -1)
+
+        log.info("Scheduling sources generation")
+
+        ProgressManager.getInstance().runProcessWithProgressAsynchronously(
+            GenerateSourcesTask(
+                project,
+                mainScoreRoots = mainScoreRoots,
+                testScoreRoots = testScoreRoots,
+                buildDirectory = buildDirectory,
+                snakeToCamel = celestaManager.isSnakeToCamel(module)
+            ),
+            EmptyProgressIndicator()
+        )
     }
 
     companion object {
@@ -143,174 +123,51 @@ class AutoGenerateSourcesListener(private val project: Project) : FileEditorMana
     }
 }
 
-private class RunMavenAction(
-    private val project: Project,
-    private val mavenProject: MavenProject,
-    private val projectsManager: MavenProjectsManager
-) : NotificationAction("Re-run Maven Goal") {
-
-    override fun actionPerformed(e: AnActionEvent, notification: Notification) {
-        val params = MavenRunnerParameters(
-            true,
-            mavenProject.directory,
-            mavenProject.file.name,
-            listOf("generate-sources", "generate-test-sources"),
-            projectsManager.explicitProfiles.enabledProfiles,
-            projectsManager.explicitProfiles.disabledProfiles
-        )
-
-        MavenRunConfigurationType.runConfiguration(project, params, null)
-    }
-}
-
-private var jdkProblemNotified: Boolean = false
-
-private class GenerateSourcesTask(project: Project, val mavenProject: MavenProject) :
-    Task.Backgroundable(project, "Generate Sources") {
-    private val projectsManager = MavenProjectsManager.getInstance(project)
+private class GenerateSourcesTask(
+    project: Project,
+    private val mainScoreRoots: List<File>,
+    private val testScoreRoots: List<File>,
+    private val buildDirectory: File,
+    private val snakeToCamel: Boolean
+) : Task.Backgroundable(project, "Generating Celesta cursors") {
 
     override fun run(indicator: ProgressIndicator) {
-        val jdkChanged: Boolean
-
-        val projectSdk: Sdk? = ProjectRootManager.getInstance(project).projectSdk
-        if (projectSdk != null) {
-            if (!JavaSdk.getInstance().isOfVersionOrHigher(projectSdk, JavaSdkVersion.JDK_1_8)) {
-                if (!jdkProblemNotified) {
-                    jdkProblemNotified = true
-
-
-                    CELESTA_NOTIFICATIONS
-                        .createNotification(
-                            "Only JDK 1.8 is supported now",
-                            NotificationType.ERROR
-                        )
-                        .notify(project)
-                }
-                return
-            }
-
-            jdkProblemNotified = false
-
-            val importingSettings = MavenWorkspaceSettingsComponent.getInstance(project).settings.getImportingSettings()
-
-            jdkChanged = importingSettings.jdkForImporter != projectSdk.name
-
-            importingSettings.jdkForImporter = projectSdk.name
-        } else {
-            if (!jdkProblemNotified) {
-                jdkProblemNotified = true
-
-                CELESTA_NOTIFICATIONS
-                    .createNotification(
-                        "Specify project JDK to generate celesta sql sources",
-                        NotificationType.ERROR
-                    )
-                    .notify(project)
-            }
+        try {
+            // Mirror the Maven plugin's layout: cursors under generated-sources, score resources under
+            // generated-resources/score (the "score" subdir is where Celesta's
+            // ScoreByScoreResourceDiscovery looks once the resources reach the classpath).
+            CelestaGenerator.generate(
+                mainScoreRoots,
+                File(buildDirectory, "generated-sources/celesta"),
+                File(buildDirectory, "generated-resources/score"),
+                snakeToCamel
+            )
+            CelestaGenerator.generate(
+                testScoreRoots,
+                File(buildDirectory, "generated-test-sources/celesta"),
+                File(buildDirectory, "generated-test-resources/score"),
+                snakeToCamel
+            )
+        } catch (e: ParseException) {
+            // Parse errors are already shown in the editor by CelestaSqlParseAnnotator; surface a
+            // short notification so the user knows generation was skipped.
+            log.warn("Celesta score generation failed: ${e.message}")
+            CELESTA_NOTIFICATIONS
+                .createNotification(e.message ?: "Error parsing Celesta score", NotificationType.WARNING)
+                .notify(project)
+            return
+        } catch (e: Exception) {
+            log.warn("Celesta cursor generation failed", e)
+            CELESTA_NOTIFICATIONS
+                .createNotification("Error generating Celesta cursors: ${e.message}", NotificationType.ERROR)
+                .notify(project)
             return
         }
 
-        fun getEmbedder() = projectsManager.embeddersManager.getEmbedder(mavenProject, FOR_SOURCE_GENERATION)
-
-        if (jdkChanged)
-            projectsManager.embeddersManager.release(getEmbedder())
-
-        val embedder = getEmbedder()
-
-        val logsCollector: MutableList<String> = mutableListOf()
-
-        val progressReporter = object : RawProgressReporter {
-            override fun text(text: String?) {
-                if (text != null) indicator.text = text
-            }
-        }
-
-        val eventHandler = object : MavenEventHandler {
-            override fun handleConsoleEvents(consoleEvents: List<MavenServerConsoleEvent>) {
-                consoleEvents.forEach { logsCollector.add(it.message) }
-            }
-
-            override fun handleDownloadEvents(downloadEvents: List<MavenArtifactEvent>) {}
-        }
-
-        val profiles = mavenProject.activatedProfilesIds
-
-
-        val request = MavenGoalExecutionRequest(
-            mavenProject.file.toNioPath().toFile(),
-            MavenExplicitProfiles(
-                profiles.enabledProfiles,
-                profiles.disabledProfiles,
-            )
-        )
-
-        val result = mutableListOf<MavenGoalExecutionResult>()
-
-        runBlockingMaybeCancellable {
-            for (goal in listOf(
-                "celesta:gen-cursors",
-                "celesta:gen-score-resources",
-                "celesta:gen-test-cursors",
-                "celesta:gen-test-score-resources"
-            ))
-                result.addAll(
-                    embedder.executeGoal(
-                        listOf(request),
-                        goal,
-                        progressReporter,
-                        eventHandler
-                    )
-                )
-        }
-        val problems = result.flatMap { it.problems }
-
-        if (problems.isEmpty()) {
-            VfsUtil.markDirtyAndRefresh(true, true, true, File(mavenProject.buildDirectory))
-            return
-        }
-
-        logger<GenerateSourcesTask>().info(
-            """Source generation failed: 
-#========START MAVEN LOGS========
-${logsCollector.joinToString(separator = "")} 
-#========END MAVEN LOGS========
-"""
-        )
-
-        problems
-            .takeIf {
-                it.isNotEmpty()
-            }?.joinToString(separator = "\n") {
-                it.description ?: ""
-            }?.let {
-                logger<GenerateSourcesTask>().warn("Errors during sources generation: $it")
-            }
-
-        for (problem in problems) {
-            if (problem.description?.contains("celesta-maven-plugin") == true) {
-                CELESTA_NOTIFICATIONS
-                    .createNotification(
-                        "Error during generation in celesta",
-                        NotificationType.ERROR
-                    )
-                    .addAction(RunMavenAction(project, mavenProject, projectsManager))
-                    .notify(project)
-                return
-            }
-        }
-
-        CELESTA_NOTIFICATIONS
-            .createNotification(
-                "Error during generation",
-                NotificationType.ERROR
-            )
-            .addAction(RunMavenAction(project, mavenProject, projectsManager))
-            .notify(project)
+        VfsUtil.markDirtyAndRefresh(true, true, true, buildDirectory)
     }
 
     companion object {
-        private val FOR_SOURCE_GENERATION: Key<*> =
-            Key.create<Any>(AutoGenerateSourcesListener::class.java.toString() + ".FOR_SOURCE_GENERATION")
+        private val log = logger<GenerateSourcesTask>()
     }
-
 }

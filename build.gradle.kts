@@ -33,6 +33,13 @@ dependencies {
         exclude(group = "com.h2database")     // runtime DB driver, not needed for score parsing
     }
 
+    // CursorGenerator: generates Celesta cursor classes in-process (instead of running a Maven goal).
+    // Its Maven dependencies are "provided" scope, so consuming it pulls only celesta-core + javapoet.
+    implementation("ru.curs:celesta-maven-plugin:8.2.0") {
+        exclude(group = "org.slf4j")
+        exclude(group = "com.h2database")
+    }
+
     intellijPlatform {
         create("IU", "2026.1.3")
 
