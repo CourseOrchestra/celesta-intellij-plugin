@@ -29,14 +29,14 @@ dependencies {
 
     // CelestaSQL parser used to validate score files in the editor. Bundled into the plugin's lib/.
     // slf4j-api is already provided by the IntelliJ Platform, so exclude it to avoid a duplicate copy.
-    implementation("ru.curs:celesta-core:8.2.0") {
+    implementation("ru.curs:celesta-core:8.2.1") {
         exclude(group = "org.slf4j")          // already provided by the IntelliJ Platform
         exclude(group = "com.h2database")     // runtime DB driver, not needed for score parsing
     }
 
     // CursorGenerator: generates Celesta cursor classes in-process (instead of running a Maven goal).
     // Its Maven dependencies are "provided" scope, so consuming it pulls only celesta-core + javapoet.
-    implementation("ru.curs:celesta-maven-plugin:8.2.0") {
+    implementation("ru.curs:celesta-maven-plugin:8.2.1") {
         exclude(group = "org.slf4j")
         exclude(group = "com.h2database")
     }
