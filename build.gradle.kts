@@ -5,7 +5,7 @@ plugins {
     java
     id("org.jetbrains.intellij.platform") version "2.18.1"
     id("org.jetbrains.kotlin.jvm") version "2.4.10"
-    id("dev.detekt") version "2.0.0-alpha.5"
+    id("dev.detekt") version "2.0.0-alpha.6"
 }
 
 group = "ru.curs.celesta.intellij"
