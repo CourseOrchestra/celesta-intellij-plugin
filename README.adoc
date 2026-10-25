@@ -1,5 +1,7 @@
 = Celesta IntelliJ Plugin
 
+image:https://img.shields.io/jetbrains/plugin/v/ru.curs.celesta.intellij.svg[JetBrains Plugin Version, link="https://plugins.jetbrains.com/plugin/15712-celestasql"]
+
 Offers support for https://github.com/courseorchestra/celesta[Celesta] 
 
 image::demo.gif[]
